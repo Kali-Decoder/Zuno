@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "paths": {
+      "~~/*": ["./*"],
+      "@/*": ["./src/*"],
+      "@privy-io/react-auth": ["./mocks/privy.tsx"],
+      "@privy-io/wagmi": ["./mocks/privy-wagmi.tsx"],
+      "@rainbow-me/rainbowkit": ["./mocks/rainbowkit.tsx"],
+      "wagmi": ["./mocks/wagmi.ts"],
+      "@wagmi/core": ["./mocks/wagmi-core.ts"],
+      "wagmi/actions": ["./mocks/wagmi-actions.ts"],
+      "wagmi/query": ["./mocks/wagmi-query.ts"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "lib/tradingView/tradingviewDataFeed.js",
+    "components/coin/TradingView.jsx"
+  ],
+  "exclude": ["node_modules"]
+}
