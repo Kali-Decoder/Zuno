@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@deployments/*": ["../implementation/deployments/*"]
     }
   },
   "include": [

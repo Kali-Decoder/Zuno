@@ -1,4 +1,4 @@
-import deployed from "./addresses.json";
+import deployed from "../../../implementation/deployments/monadTestnet.json";
 
 const env = (key: string, fallback: string) => {
   const value = process.env[key];
@@ -39,9 +39,11 @@ export const PROPOSAL_STATE = ["Pending", "Active", "Succeeded", "Defeated", "Ex
 export const CORE_ABI = [
   "function createCurve(address creator, string name, string symbol, string tokenURI, uint256 amountIn, uint256 fee) payable returns (address curve, address token, uint256 virtualNative, uint256 virtualToken, uint256 amountOut)",
   "function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) payable",
+  "function exactOutBuy(uint256 amountInMax, uint256 amountOut, address token, address to, uint256 deadline) payable",
   "function sell(uint256 amountIn, address token, address to, uint256 deadline)",
   "function getCurveData(address factory, address token) view returns (address curve, uint256 virtualNative, uint256 virtualToken, uint256 k)",
   "function getAmountOut(uint256 amountIn, uint256 k, uint256 reserveIn, uint256 reserveOut) pure returns (uint256 amountOut)",
+  "function getAmountIn(uint256 amountOut, uint256 k, uint256 reserveIn, uint256 reserveOut) pure returns (uint256 amountIn)",
   "function factory() view returns (address)",
   "function wNative() view returns (address)",
 ] as const;
@@ -52,6 +54,9 @@ export const FACTORY_ABI = [
   "function getDelpyFee() view returns (uint256)",
   "function getListingFee() view returns (uint256)",
   "function getFeeConfig() view returns (uint8 denominator, uint16 numerator)",
+  "function getCore() view returns (address)",
+  "function getDexFactory() view returns (address)",
+  "function getLpVault() view returns (address)",
   "event Create(address indexed owner, address indexed curve, address indexed token, string tokenURI, string name, string symbol, uint256 virtualNative, uint256 virtualToken)",
 ] as const;
 

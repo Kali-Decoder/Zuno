@@ -11,11 +11,29 @@ export function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function DataRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+export function DataRow({
+  label,
+  value,
+  mono = false,
+  href,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  href?: string;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-black/35 px-3 py-2">
       <dt className="text-zinc-400">{label}</dt>
-      <dd className={`${mono ? "font-mono" : ""} text-right text-white`}>{value}</dd>
+      <dd className={`${mono ? "font-mono" : ""} text-right text-white`}>
+        {href ? (
+          <a href={href} target="_blank" rel="noreferrer" className="text-monad-purple hover:text-white">
+            {value}
+          </a>
+        ) : (
+          value
+        )}
+      </dd>
     </div>
   );
 }
@@ -61,7 +79,8 @@ export function PrimaryButton({
       disabled={disabled || loading}
       className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-monad-purple px-4 py-2 text-sm font-semibold text-white hover:bg-monad-purple/80 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
+      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+      {children}
     </button>
   );
 }

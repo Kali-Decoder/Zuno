@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 import webpack from "webpack";
 
 const nextConfig: NextConfig = {
@@ -19,7 +20,15 @@ const nextConfig: NextConfig = {
   turbopack: {},
   
   // Use webpack instead of Turbopack for builds to avoid issues with thread-stream test files
+  outputFileTracingRoot: path.join(__dirname, ".."),
+
   webpack: (config, { isServer }) => {
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@deployments": path.join(__dirname, "../implementation/deployments"),
+    };
+
     // Ignore test files and other non-production files from thread-stream
     config.plugins = config.plugins || [];
     config.plugins.push(

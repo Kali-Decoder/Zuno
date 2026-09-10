@@ -21,7 +21,7 @@ import {
 } from "@/app/config/reflow";
 import { DataRow, Field, PrimaryButton, StatCard } from "@/app/components/ui";
 import { useToastContext } from "@/app/contexts/ToastContext";
-import { useWallet } from "@/app/hooks/useWallet";
+import { useWalletContext } from "@/app/contexts/WalletContext";
 import {
   calcFee,
   deadline,
@@ -34,6 +34,9 @@ import {
   ZERO,
   ZERO_ADDRESS,
 } from "@/app/lib/format";
+import { explorerAddress, getFreshPublicProvider, getPublicProvider } from "@/app/lib/provider";
+import { loadProtocol, mergeTokens, resolvePair, type ProposalView } from "@/app/lib/protocol";
+import { decodeCallError, sendContractTx } from "@/app/lib/tx";
 import { loadTrackedTokens, saveTrackedToken, type TrackedToken } from "@/app/lib/tokens";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
@@ -95,18 +98,6 @@ type PoolActivity = {
   recyclingEligible: boolean;
 };
 
-type ProposalView = {
-  id: bigint;
-  deadToken: string;
-  candidates: string[];
-  startTime: bigint;
-  endTime: bigint;
-  winner: string;
-  executed: boolean;
-  cancelled: boolean;
-  state: number;
-};
-
 const EMPTY_CURVE: CurveState = {
   curve: "",
   locked: false,
@@ -128,7 +119,7 @@ const EMPTY_CURVE: CurveState = {
 
 export default function Home() {
   const { showError, showInfo, showSuccess } = useToastContext();
-  const wallet = useWallet();
+  const wallet = useWalletContext();
 
   const [step, setStep] = useState<StepId>(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -139,7 +130,6 @@ export default function Home() {
   const [curveState, setCurveState] = useState<CurveState>(EMPTY_CURVE);
   const [position, setVaultPosition] = useState<VaultPosition | null>(null);
   const [activity, setActivity] = useState<PoolActivity | null>(null);
-  const [nativeBalance, setNativeBalance] = useState(ZERO);
 
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
@@ -163,13 +153,20 @@ export default function Home() {
   const [minVoteStake, setMinVoteStake] = useState(ZERO);
   const [proposalCount, setProposalCount] = useState(ZERO);
   const [candidateVotes, setCandidateVotes] = useState<Record<string, bigint>>({});
+  const [proposals, setProposals] = useState<ProposalView[]>([]);
+  const [listedTokens, setVaultListed] = useState<TrackedToken[]>([]);
+  const [wired, setWired] = useState(false);
+  const [votingPeriod, setVotingPeriod] = useState(ZERO);
+  const [inactivityPeriod, setInactivityPeriod] = useState(ZERO);
 
   const contractsReady = isSetAddress(REFLOW.core) && isSetAddress(REFLOW.bondingCurveFactory);
   const tokenAddress = selectedToken || tokenInput;
 
   const progressPct = useMemo(() => {
-    if (!factoryConfig || curveState.targetToken === ZERO) return 0;
-    const supply = factoryConfig.tokenTotalSupply;
+    if (curveState.targetToken === ZERO) return curveState.locked || curveState.listed ? 100 : 0;
+    const supply = factoryConfig?.tokenTotalSupply && factoryConfig.tokenTotalSupply > ZERO
+      ? factoryConfig.tokenTotalSupply
+      : BigInt("1000000000000000000000000000"); // 1e27 matches Token.mint
     const sold = supply > curveState.reserveToken ? supply - curveState.reserveToken : ZERO;
     const targetSold = supply > curveState.targetToken ? supply - curveState.targetToken : ZERO;
     if (targetSold === ZERO) return curveState.locked || curveState.listed ? 100 : 0;
@@ -177,33 +174,35 @@ export default function Home() {
     return Math.max(0, Math.min(100, pct));
   }, [factoryConfig, curveState]);
 
-  const loadFactory = useCallback(async () => {
-    if (!wallet.ethereum || !contractsReady) return;
-    const provider = wallet.getProvider();
-    const factory = new ethers.Contract(REFLOW.bondingCurveFactory, FACTORY_ABI, provider);
-    const cfg = await factory.getConfig();
-    setFactoryConfig({
-      deployFee: cfg.deployFee,
-      listingFee: cfg.listingFee,
-      tokenTotalSupply: cfg.tokenTotalSupply,
-      virtualNative: cfg.virtualNative,
-      virtualToken: cfg.virtualToken,
-      k: cfg.k,
-      targetToken: cfg.targetToken,
-      feeNumerator: BigInt(cfg.feeNumerator),
-      feeDenominator: BigInt(cfg.feeDenominator),
-    });
-    if (isSetAddress(REFLOW.governor)) {
-      const governor = new ethers.Contract(REFLOW.governor, GOVERNOR_ABI, provider);
-      const [stake, count] = await Promise.all([governor.minVoteStake(), governor.proposalCount()]);
-      setMinVoteStake(stake);
-      setProposalCount(count);
-    }
-  }, [contractsReady, wallet.ethereum, wallet.getProvider]);
+  const tokensToLock =
+    !curveState.locked &&
+    !curveState.listed &&
+    curveState.targetToken > ZERO &&
+    curveState.reserveToken > curveState.targetToken
+      ? curveState.reserveToken - curveState.targetToken
+      : ZERO;
 
-  const refreshToken = useCallback(async () => {
-    if (!wallet.ethereum || !contractsReady) return;
-    const address = isSetAddress(tokenAddress) ? tokenAddress : "";
+  const canFinalizeLock = tokensToLock > ZERO && isSetAddress(curveState.curve);
+
+  const loadFactory = useCallback(async () => {
+    if (!contractsReady) return;
+    const provider = getFreshPublicProvider();
+    const snap = await loadProtocol(provider);
+    setFactoryConfig(snap.config);
+    setMinVoteStake(snap.minVoteStake);
+    setProposalCount(snap.proposalCount);
+    setVotingPeriod(snap.votingPeriod);
+    setInactivityPeriod(snap.inactivityPeriod);
+    setWired(snap.wired);
+    setProposals(snap.proposals);
+    setVaultListed(snap.vaultTokens);
+    setTracked(mergeTokens(loadTrackedTokens(), snap.launchedTokens, snap.vaultTokens));
+    snap.launchedTokens.forEach(saveTrackedToken);
+  }, [contractsReady]);
+
+  const refreshToken = useCallback(async (overrideAddress?: string) => {
+    if (!contractsReady) return;
+    const address = isSetAddress(overrideAddress || tokenAddress) ? (overrideAddress || tokenAddress) : "";
     if (!address) {
       setCurveState(EMPTY_CURVE);
       setVaultPosition(null);
@@ -213,7 +212,7 @@ export default function Home() {
 
     setIsRefreshing(true);
     try {
-      const provider = wallet.getProvider();
+      const provider = getFreshPublicProvider();
       const factory = new ethers.Contract(REFLOW.bondingCurveFactory, FACTORY_ABI, provider);
       const curveAddr = (await factory.getCurve(address)) as string;
       if (!isSetAddress(curveAddr)) {
@@ -226,7 +225,7 @@ export default function Home() {
 
       const curve = new ethers.Contract(curveAddr, CURVE_ABI, provider);
       const token = new ethers.Contract(address, ERC20_ABI, provider);
-      const [locked, listed, k, virtuals, reserves, target, feeCfg, pair, nameOnchain, symbolOnchain, decimals, bal] =
+      const [locked, listed, k, virtuals, reserves, target, feeCfg, pairRaw, nameOnchain, symbolOnchain, decimals, bal] =
         await Promise.all([
           curve.getLock() as Promise<boolean>,
           curve.getIsListing() as Promise<boolean>,
@@ -241,6 +240,8 @@ export default function Home() {
           token.decimals() as Promise<number>,
           wallet.account ? (token.balanceOf(wallet.account) as Promise<bigint>) : Promise.resolve(ZERO),
         ]);
+
+      const pair = await resolvePair(provider, address, pairRaw);
 
       setCurveState({
         curve: curveAddr,
@@ -260,10 +261,6 @@ export default function Home() {
         decimals: Number(decimals),
         walletBalance: bal,
       });
-
-      if (wallet.account) {
-        setNativeBalance(await provider.getBalance(wallet.account));
-      }
 
       if (isSetAddress(REFLOW.lpVault)) {
         const vault = new ethers.Contract(REFLOW.lpVault, VAULT_ABI, provider);
@@ -297,21 +294,21 @@ export default function Home() {
         symbol: symbolOnchain,
         curve: curveAddr,
       });
-      setTracked(loadTrackedTokens());
+      setTracked(mergeTokens(loadTrackedTokens(), listedTokens));
     } catch (error) {
       showError(txError(error));
     } finally {
       setIsRefreshing(false);
     }
-  }, [contractsReady, showError, tokenAddress, wallet.account, wallet.ethereum, wallet.getProvider]);
+  }, [contractsReady, listedTokens, showError, tokenAddress, wallet.account]);
 
   const refreshProposal = useCallback(async () => {
-    if (!wallet.ethereum || !isSetAddress(REFLOW.governor) || !proposalId) {
+    if (!isSetAddress(REFLOW.governor) || !proposalId) {
       setProposal(null);
       return;
     }
     try {
-      const provider = wallet.getProvider();
+      const provider = getPublicProvider();
       const governor = new ethers.Contract(REFLOW.governor, GOVERNOR_ABI, provider);
       const id = BigInt(proposalId);
       const [p, state] = await Promise.all([governor.getProposal(id), governor.state(id)]);
@@ -337,7 +334,7 @@ export default function Home() {
     } catch (error) {
       showError(txError(error));
     }
-  }, [proposalId, showError, wallet.ethereum, wallet.getProvider]);
+  }, [proposalId, showError]);
 
   useEffect(() => {
     setTracked(loadTrackedTokens());
@@ -349,6 +346,15 @@ export default function Home() {
     refreshToken();
   }, [refreshToken, tokenAddress, wallet.account]);
 
+  // Keep curve stats fresh while trading (public RPC can lag wallet receipts).
+  useEffect(() => {
+    if (!isSetAddress(tokenAddress)) return;
+    const timer = setInterval(() => {
+      refreshToken(tokenAddress);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [refreshToken, tokenAddress]);
+
   useEffect(() => {
     refreshProposal();
   }, [refreshProposal]);
@@ -356,11 +362,11 @@ export default function Home() {
   useEffect(() => {
     const updateQuote = async () => {
       setQuoteOut("");
-      if (!wallet.ethereum || !contractsReady || !isSetAddress(tokenAddress) || !tradeAmount) return;
+      if (!contractsReady || !isSetAddress(tokenAddress) || !tradeAmount) return;
       try {
         const amount = ethers.parseEther(tradeAmount);
         if (amount <= ZERO) return;
-        const provider = wallet.getProvider();
+        const provider = getPublicProvider();
         const core = new ethers.Contract(REFLOW.core, CORE_ABI, provider);
         if (tradeSide === "buy") {
           const out = (await core.getAmountOut(
@@ -385,14 +391,14 @@ export default function Home() {
       }
     };
     updateQuote();
-  }, [contractsReady, curveState, tokenAddress, tradeAmount, tradeSide, wallet.ethereum, wallet.getProvider]);
+  }, [contractsReady, curveState, tokenAddress, tradeAmount, tradeSide]);
 
   useEffect(() => {
     const updateDexQuote = async () => {
       setDexQuote("");
-      if (!wallet.ethereum || !curveState.listed || !dexAmount || !isSetAddress(curveState.pair)) return;
+      if (!curveState.listed || !dexAmount || !isSetAddress(curveState.pair)) return;
       try {
-        const provider = wallet.getProvider();
+        const provider = getPublicProvider();
         const pair = new ethers.Contract(curveState.pair, PAIR_ABI, provider);
         const [r0, r1] = (await pair.getReserves()) as [bigint, bigint, number];
         const token0 = (await pair.token0()) as string;
@@ -416,11 +422,17 @@ export default function Home() {
       }
     };
     updateDexQuote();
-  }, [curveState.decimals, curveState.listed, curveState.pair, curveState.symbol, dexAmount, dexSide, wallet.ethereum, wallet.getProvider]);
+  }, [curveState.decimals, curveState.listed, curveState.pair, curveState.symbol, dexAmount, dexSide]);
 
-  const afterWrite = async (message: string) => {
+  const afterWrite = async (message: string, tokenOverride?: string) => {
     showSuccess(message);
-    await Promise.all([loadFactory(), refreshToken(), refreshProposal()]);
+    const target = tokenOverride || tokenAddress;
+    await Promise.all([loadFactory(), refreshToken(target), refreshProposal(), wallet.refreshBalance()]);
+    if (isSetAddress(target)) {
+      await new Promise((r) => setTimeout(r, 900));
+      await refreshToken(target);
+      await wallet.refreshBalance();
+    }
   };
 
   const createCurve = async () => {
@@ -429,25 +441,23 @@ export default function Home() {
       return;
     }
     try {
+      let launchedToken = "";
       const ok = await wallet.runWrite(async (signer) => {
-        const core = new ethers.Contract(REFLOW.core, CORE_ABI, signer);
-        const factory = new ethers.Contract(REFLOW.bondingCurveFactory, FACTORY_ABI, wallet.getProvider());
+        const factory = new ethers.Contract(REFLOW.bondingCurveFactory, FACTORY_ABI, getFreshPublicProvider());
         const deployFee = (await factory.getDelpyFee()) as bigint;
         const amountIn = seedBuy && Number(seedBuy) > 0 ? ethers.parseEther(seedBuy) : ZERO;
         const feeDen = factoryConfig?.feeDenominator ?? BigInt(1);
         const feeNum = factoryConfig?.feeNumerator ?? BigInt(100);
         const fee = calcFee(amountIn, feeDen, feeNum);
         const value = amountIn + fee + deployFee;
-        const tx = await core.createCurve(
-          wallet.account,
-          name.trim(),
-          symbol.trim(),
-          tokenURI.trim() || "ipfs://reflow",
-          amountIn,
-          fee,
+        const receipt = await sendContractTx(
+          signer,
+          REFLOW.core,
+          CORE_ABI,
+          "createCurve",
+          [wallet.account, name.trim(), symbol.trim(), tokenURI.trim() || "ipfs://reflow", amountIn, fee],
           { value }
         );
-        const receipt = await tx.wait();
         const parsed = receipt?.logs
           .map((log: ethers.Log) => {
             try {
@@ -460,6 +470,7 @@ export default function Home() {
         if (parsed) {
           const token = parsed.args.token as string;
           const curve = parsed.args.curve as string;
+          launchedToken = token;
           const next = saveTrackedToken({ address: token, name: name.trim(), symbol: symbol.trim(), curve });
           setTracked(next);
           setSelectedToken(token);
@@ -467,9 +478,9 @@ export default function Home() {
           setStep(2);
         }
       });
-      if (ok) await afterWrite("Token launched on the bonding curve.");
+      if (ok) await afterWrite("Token launched on the bonding curve.", launchedToken);
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "createCurve"));
     }
   };
 
@@ -484,30 +495,101 @@ export default function Home() {
     }
     try {
       const ok = await wallet.runWrite(async (signer) => {
-        const core = new ethers.Contract(REFLOW.core, CORE_ABI, signer);
         if (tradeSide === "buy") {
           const amountIn = ethers.parseEther(tradeAmount);
-          const fee = calcFee(amountIn, curveState.feeDen, curveState.feeNum);
-          const tx = await core.buy(amountIn, fee, tokenAddress, wallet.account, deadline(), {
-            value: amountIn + fee,
-          });
-          await tx.wait();
+          // Prefer live fee config from curve; fall back to factory 1%.
+          let feeDen = curveState.feeDen;
+          let feeNum = curveState.feeNum;
+          if (feeNum === ZERO) {
+            feeDen = BigInt(1);
+            feeNum = BigInt(100);
+          }
+          let fee = calcFee(amountIn, feeDen, feeNum);
+          if (fee === ZERO) fee = 1n; // Core.buy requires fee > 0
+          await sendContractTx(
+            signer,
+            REFLOW.core,
+            CORE_ABI,
+            "buy",
+            [amountIn, fee, tokenAddress, wallet.account, deadline()],
+            { value: amountIn + fee }
+          );
         } else {
           const amountIn = ethers.parseUnits(tradeAmount, curveState.decimals);
-          const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+          const token = new ethers.Contract(tokenAddress, ERC20_ABI, getPublicProvider());
           const allowance = (await token.allowance(wallet.account, REFLOW.core)) as bigint;
           if (allowance < amountIn) {
-            const approveTx = await token.approve(REFLOW.core, amountIn);
-            await approveTx.wait();
+            await sendContractTx(signer, tokenAddress, ERC20_ABI, "approve", [REFLOW.core, amountIn]);
           }
-          const tx = await core.sell(amountIn, tokenAddress, wallet.account, deadline());
-          await tx.wait();
+          await sendContractTx(signer, REFLOW.core, CORE_ABI, "sell", [
+            amountIn,
+            tokenAddress,
+            wallet.account,
+            deadline(),
+          ]);
         }
         setTradeAmount("");
       });
-      if (ok) await afterWrite(tradeSide === "buy" ? "Bought on the bonding curve." : "Sold on the bonding curve.");
+      if (ok) {
+        await afterWrite(
+          tradeSide === "buy" ? "Bought on the bonding curve." : "Sold on the bonding curve.",
+          tokenAddress
+        );
+      }
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "buy/sell"));
+    }
+  };
+
+  const finalizeLock = async () => {
+    if (!ethers.isAddress(tokenAddress) || !isSetAddress(curveState.curve)) {
+      showInfo("Load a curve first.");
+      return;
+    }
+    try {
+      const ok = await wallet.runWrite(async (signer) => {
+        const provider = getFreshPublicProvider();
+        const core = new ethers.Contract(REFLOW.core, CORE_ABI, provider);
+        const curve = new ethers.Contract(curveState.curve, CURVE_ABI, provider);
+        const [, , , k] = (await core.getCurveData(REFLOW.bondingCurveFactory, tokenAddress)) as [
+          string,
+          bigint,
+          bigint,
+          bigint,
+        ];
+        const [virtualNative, virtualToken] = (await curve.getVirtualReserves()) as [bigint, bigint];
+        const [, reserveToken] = (await curve.getReserves()) as [bigint, bigint];
+        const targetToken = (await curve.getTargetToken()) as bigint;
+        if (reserveToken <= targetToken) {
+          throw new Error("Nothing left to buy — refresh and check Locked status.");
+        }
+        const amountOut = reserveToken - targetToken;
+        const amountIn = (await core.getAmountIn(amountOut, k, virtualNative, virtualToken)) as bigint;
+        const feeCfg = (await curve.getFeeConfig()) as [number, number];
+        let feeDen = BigInt(feeCfg[0]);
+        let feeNum = BigInt(feeCfg[1]);
+        if (feeNum === ZERO) {
+          feeDen = BigInt(1);
+          feeNum = BigInt(100);
+        }
+        const fee = calcFee(amountIn, feeDen, feeNum);
+        // Buffer covers fee rounding + refund of unused native
+        const amountInMax = amountIn + fee + ethers.parseEther("0.02");
+        await sendContractTx(
+          signer,
+          REFLOW.core,
+          CORE_ABI,
+          "exactOutBuy",
+          [amountInMax, amountOut, tokenAddress, wallet.account, deadline()],
+          { value: amountInMax }
+        );
+      });
+      if (ok) {
+        await afterWrite("Curve locked at target. You can graduate now.", tokenAddress);
+        setStep(3);
+      }
+    } catch (error) {
+      showError(decodeCallError(error, "exactOutBuy"));
     }
   };
 
@@ -518,16 +600,14 @@ export default function Home() {
     }
     try {
       const ok = await wallet.runWrite(async (signer) => {
-        const curve = new ethers.Contract(curveState.curve, CURVE_ABI, signer);
-        const tx = await curve.listing();
-        await tx.wait();
+        await sendContractTx(signer, curveState.curve, CURVE_ABI, "listing", []);
       });
       if (ok) {
         await afterWrite("Listed on Uniswap V2. LP locked in the recycling vault.");
         setStep(4);
       }
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "listing"));
     }
   };
 
@@ -542,31 +622,38 @@ export default function Home() {
     }
     try {
       const ok = await wallet.runWrite(async (signer) => {
-        const router = new ethers.Contract(REFLOW.dexRouter, DEX_ROUTER_ABI, signer);
         if (dexSide === "buy") {
           const amountIn = ethers.parseEther(dexAmount);
+          const router = new ethers.Contract(REFLOW.dexRouter, DEX_ROUTER_ABI, getPublicProvider());
           const [den, num] = (await router.getFeeConfig()) as [bigint, bigint];
           const fee = calcFee(amountIn, den, num);
-          const tx = await router.buy(amountIn, fee, tokenAddress, wallet.account, deadline(), {
-            value: amountIn + fee,
-          });
-          await tx.wait();
+          await sendContractTx(
+            signer,
+            REFLOW.dexRouter,
+            DEX_ROUTER_ABI,
+            "buy",
+            [amountIn, fee, tokenAddress, wallet.account, deadline()],
+            { value: amountIn + fee }
+          );
         } else {
           const amountIn = ethers.parseUnits(dexAmount, curveState.decimals);
-          const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+          const token = new ethers.Contract(tokenAddress, ERC20_ABI, getPublicProvider());
           const allowance = (await token.allowance(wallet.account, REFLOW.dexRouter)) as bigint;
           if (allowance < amountIn) {
-            const approveTx = await token.approve(REFLOW.dexRouter, amountIn);
-            await approveTx.wait();
+            await sendContractTx(signer, tokenAddress, ERC20_ABI, "approve", [REFLOW.dexRouter, amountIn]);
           }
-          const tx = await router.sell(amountIn, tokenAddress, wallet.account, deadline());
-          await tx.wait();
+          await sendContractTx(signer, REFLOW.dexRouter, DEX_ROUTER_ABI, "sell", [
+            amountIn,
+            tokenAddress,
+            wallet.account,
+            deadline(),
+          ]);
         }
         setDexAmount("");
       });
       if (ok) await afterWrite("DEX trade recorded by ActivityMonitor.");
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "dex trade"));
     }
   };
 
@@ -578,13 +665,11 @@ export default function Home() {
     }
     try {
       const ok = await wallet.runWrite(async (signer) => {
-        const vault = new ethers.Contract(REFLOW.lpVault, VAULT_ABI, signer);
-        const tx = await vault.markInactive(token);
-        await tx.wait();
+        await sendContractTx(signer, REFLOW.lpVault, VAULT_ABI, "markInactive", [token]);
       });
       if (ok) await afterWrite("LP marked inactive.");
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "markInactive"));
     }
   };
 
@@ -597,9 +682,11 @@ export default function Home() {
     try {
       let createdId = "";
       const ok = await wallet.runWrite(async (signer) => {
-        const governor = new ethers.Contract(REFLOW.governor, GOVERNOR_ABI, signer);
-        const tx = await governor.propose(dead, [candidateToken]);
-        const receipt = await tx.wait();
+        const receipt = await sendContractTx(signer, REFLOW.governor, GOVERNOR_ABI, "propose", [
+          dead,
+          [candidateToken],
+        ]);
+        const governor = new ethers.Contract(REFLOW.governor, GOVERNOR_ABI, getPublicProvider());
         const parsed = receipt?.logs
           .map((log: ethers.Log) => {
             try {
@@ -615,7 +702,7 @@ export default function Home() {
       if (createdId) setProposalId(createdId);
       await afterWrite("Recycling proposal created.");
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "propose"));
     }
   };
 
@@ -626,14 +713,14 @@ export default function Home() {
     }
     try {
       const ok = await wallet.runWrite(async (signer) => {
-        const governor = new ethers.Contract(REFLOW.governor, GOVERNOR_ABI, signer);
         const value = ethers.parseEther(voteStake || "0.01");
-        const tx = await governor.vote(BigInt(proposalId), voteCandidate, { value });
-        await tx.wait();
+        await sendContractTx(signer, REFLOW.governor, GOVERNOR_ABI, "vote", [BigInt(proposalId), voteCandidate], {
+          value,
+        });
       });
       if (ok) await afterWrite("Vote counted.");
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "vote"));
     }
   };
 
@@ -644,13 +731,11 @@ export default function Home() {
     }
     try {
       const ok = await wallet.runWrite(async (signer) => {
-        const governor = new ethers.Contract(REFLOW.governor, GOVERNOR_ABI, signer);
-        const tx = await governor.execute(BigInt(proposalId));
-        await tx.wait();
+        await sendContractTx(signer, REFLOW.governor, GOVERNOR_ABI, "execute", [BigInt(proposalId)]);
       });
       if (ok) await afterWrite("Liquidity recycled.");
     } catch (error) {
-      showError(txError(error));
+      showError(decodeCallError(error, "execute"));
     }
   };
 
@@ -674,8 +759,10 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {wallet.isConnected ? (
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                {shortAddress(wallet.account)} · {formatToken(nativeBalance)} MON
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-emerald-400">Connected wallet</p>
+                <p className="mt-1 font-mono text-sm text-white">{shortAddress(wallet.account)}</p>
+                <p className="mt-1 text-lg font-semibold text-white">{formatToken(wallet.nativeBalance, 18, 6)} MON</p>
               </div>
             ) : (
               <button
@@ -685,7 +772,7 @@ export default function Home() {
                 <Wallet className="h-4 w-4" /> Connect Wallet
               </button>
             )}
-            {!wallet.isCorrectNetwork && (
+            {!wallet.isCorrectNetwork && wallet.isConnected && (
               <button
                 onClick={wallet.switchToMonad}
                 className="inline-flex items-center gap-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-200 hover:bg-yellow-500/20"
@@ -709,11 +796,30 @@ export default function Home() {
         </div>
       </div>
 
+      {contractsReady && (
+        <section className="mt-6 rounded-2xl border border-card-border bg-card/80 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-zinc-400">Monad Testnet</p>
+              <p className="mt-1 text-sm text-white">
+                {wired ? "Factory, vault, and DEX are wired to this deployment." : "Reading live contract state…"}
+              </p>
+            </div>
+            <a
+              href={explorerAddress(REFLOW.core)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-monad-purple hover:text-white"
+            >
+              Core {shortAddress(REFLOW.core)} <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </section>
+      )}
+
       {!contractsReady && (
         <section className="mt-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-sm text-yellow-100">
-          Core and BondingCurveFactory addresses are missing. Deploy the Reflow stack, then copy
-          `implementation/deployments/monadTestnet.json` into `frontend/app/config/addresses.json` or set
-          `NEXT_PUBLIC_CORE` / `NEXT_PUBLIC_BONDING_CURVE_FACTORY`.
+          Core and BondingCurveFactory addresses are missing.
         </section>
       )}
 
@@ -741,7 +847,9 @@ export default function Home() {
 
       <section className="mt-6 rounded-2xl border border-card-border bg-card/80 p-5">
         <h2 className="text-lg font-semibold text-white">Token</h2>
-        <p className="mt-1 text-xs text-zinc-400">Paste an address or pick one you launched in this browser.</p>
+        <p className="mt-1 text-xs text-zinc-400">
+          Paste a token address, or pick one discovered on-chain / launched in this browser.
+        </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
             value={tokenInput}
@@ -779,7 +887,12 @@ export default function Home() {
         {isSetAddress(curveState.curve) && (
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <DataRow label="Name" value={`${curveState.name} (${curveState.symbol})`} />
-            <DataRow label="Curve" value={shortAddress(curveState.curve)} mono />
+            <DataRow
+              label="Curve"
+              value={shortAddress(curveState.curve)}
+              mono
+              href={explorerAddress(curveState.curve)}
+            />
             <DataRow
               label="Status"
               value={curveState.listed ? "Listed" : curveState.locked ? "Locked — ready to graduate" : "Trading"}
@@ -806,7 +919,8 @@ export default function Home() {
         <section className="mt-6 rounded-2xl border border-card-border bg-card/80 p-5">
           <h2 className="text-lg font-semibold text-white">1. Launch a token</h2>
           <p className="mt-1 text-xs text-zinc-400">
-            Calls `Core.createCurve`. Pay deploy fee plus an optional seed buy (fee is 1% of the seed).
+            Calls Core.createCurve. Seed buy is optional (fee is 1% of the seed). Creating the curve deploys two
+            contracts, so keep a little extra MON for gas.
           </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Name" value={name} onChange={setName} placeholder="Reflow Frog" />
@@ -839,7 +953,10 @@ export default function Home() {
             <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
               <div className="h-full bg-monad-purple" style={{ width: `${progressPct}%` }} />
             </div>
-            <p className="mt-2 text-xs text-zinc-400">{progressPct.toFixed(1)}% of listing target</p>
+            <p className="mt-2 text-xs text-zinc-400">
+              {progressPct.toFixed(1)}% of listing target
+              {isRefreshing ? " · syncing…" : ""}
+            </p>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             <StatCard label="Virtual MON" value={formatToken(curveState.virtualNative)} />
@@ -871,13 +988,26 @@ export default function Home() {
               <p className="mt-2 text-white">{quoteOut || "—"}</p>
             </div>
           </div>
-          <div className="mt-5 max-w-xs">
-            <PrimaryButton
-              onClick={tradeCurve}
-              loading={wallet.isSubmitting} disabled={curveState.locked || curveState.listed || !isSetAddress(curveState.curve)}
-            >
-              {curveState.locked ? "Curve locked" : tradeSide === "buy" ? "Buy" : "Approve + sell"}
-            </PrimaryButton>
+          <div className="mt-5 flex max-w-xl flex-col gap-3 sm:flex-row">
+            <div className="w-full max-w-xs">
+              <PrimaryButton
+                onClick={tradeCurve}
+                loading={wallet.isSubmitting}
+                disabled={curveState.locked || curveState.listed || !isSetAddress(curveState.curve)}
+              >
+                {curveState.locked ? "Curve locked" : tradeSide === "buy" ? "Buy" : "Approve + sell"}
+              </PrimaryButton>
+            </div>
+            {canFinalizeLock && (
+              <div className="w-full max-w-xs">
+                <PrimaryButton onClick={finalizeLock} loading={wallet.isSubmitting}>
+                  Lock curve (final ~{formatToken(tokensToLock, curveState.decimals, 2)} tokens)
+                </PrimaryButton>
+                <p className="mt-2 text-[11px] text-zinc-500">
+                  Uses exactOutBuy so remaining tokens hit the target exactly (market buys can overflow).
+                </p>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -892,8 +1022,20 @@ export default function Home() {
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <StatCard label="Locked" value={curveState.locked ? "Yes" : "No"} />
             <StatCard label="Listed" value={curveState.listed ? "Yes" : "No"} />
-            <StatCard label="Pair" value={isSetAddress(curveState.pair) ? shortAddress(curveState.pair) : "-"} />
+            <StatCard
+              label="Pair"
+              value={isSetAddress(curveState.pair) ? shortAddress(curveState.pair) : "-"}
+            />
           </div>
+          {!curveState.locked && canFinalizeLock && (
+            <div className="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-100">
+              Curve is not locked yet (dust left above target). Click{" "}
+              <button onClick={finalizeLock} className="underline hover:text-white">
+                Lock curve
+              </button>{" "}
+              first — listing stays disabled until `getLock()` is true.
+            </div>
+          )}
           {position && isSetAddress(position.token) && (
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               <DataRow label="Vault status" value={POSITION_STATUS[position.status] ?? String(position.status)} />
@@ -902,13 +1044,23 @@ export default function Home() {
               <DataRow label="Creator" value={shortAddress(position.creator)} mono />
             </dl>
           )}
-          <div className="mt-5 max-w-xs">
-            <PrimaryButton
-              onClick={graduate}
-              loading={wallet.isSubmitting} disabled={!curveState.locked || curveState.listed}
-            >
-              {curveState.listed ? "Already listed" : "Call listing()"}
-            </PrimaryButton>
+          <div className="mt-5 flex max-w-xl flex-col gap-3 sm:flex-row">
+            {!curveState.locked && canFinalizeLock && (
+              <div className="w-full max-w-xs">
+                <PrimaryButton onClick={finalizeLock} loading={wallet.isSubmitting}>
+                  Lock curve first
+                </PrimaryButton>
+              </div>
+            )}
+            <div className="w-full max-w-xs">
+              <PrimaryButton
+                onClick={graduate}
+                loading={wallet.isSubmitting}
+                disabled={!curveState.locked || curveState.listed}
+              >
+                {curveState.listed ? "Already listed" : curveState.locked ? "Call listing()" : "Waiting for lock"}
+              </PrimaryButton>
+            </div>
           </div>
         </section>
       )}
@@ -982,10 +1134,33 @@ export default function Home() {
               />
               <StatCard label="Min vote stake" value={`${formatToken(minVoteStake)} MON`} />
             </div>
+            <p className="mt-3 text-xs text-zinc-500">
+              Inactivity window {formatDuration(inactivityPeriod)} · voting period {formatDuration(votingPeriod)}
+            </p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <Field label="Dead token" value={deadToken} onChange={setDeadToken} placeholder="0x..." />
               <Field label="Active candidate" value={candidateToken} onChange={setCandidateToken} placeholder="0x..." />
             </div>
+            {listedTokens.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Listed tokens in vault</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {listedTokens.map((t) => (
+                    <button
+                      key={t.address}
+                      onClick={() => setCandidateToken(t.address)}
+                      className={`rounded-full border px-3 py-1 text-xs ${
+                        candidateToken.toLowerCase() === t.address.toLowerCase()
+                          ? "border-monad-purple text-white"
+                          : "border-zinc-700 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      {t.symbol || shortAddress(t.address)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-4 flex flex-wrap gap-3">
               <div className="w-full max-w-xs">
                 <PrimaryButton onClick={markInactive} loading={wallet.isSubmitting} disabled={!isSetAddress(REFLOW.lpVault)}>
@@ -1008,6 +1183,27 @@ export default function Home() {
             <p className="mt-1 text-xs text-zinc-400">
               {proposalCount > ZERO ? `${proposalCount.toString()} proposal(s) on-chain.` : "No proposals yet."}
             </p>
+            {proposals.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {proposals.map((p) => (
+                  <button
+                    key={p.id.toString()}
+                    onClick={() => {
+                      setProposalId(p.id.toString());
+                      setDeadToken(p.deadToken);
+                      setVoteCandidate(p.candidates[0] ?? "");
+                    }}
+                    className={`rounded-full border px-3 py-1 text-xs ${
+                      proposalId === p.id.toString()
+                        ? "border-monad-purple text-white"
+                        : "border-zinc-700 text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    #{p.id.toString()} · {PROPOSAL_STATE[p.state] ?? "?"}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               <Field label="Proposal ID" value={proposalId} onChange={setProposalId} placeholder="1" />
               <Field label="Candidate to vote" value={voteCandidate} onChange={setVoteCandidate} placeholder="0x..." />
@@ -1016,7 +1212,12 @@ export default function Home() {
             {proposal && (
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <DataRow label="State" value={PROPOSAL_STATE[proposal.state] ?? String(proposal.state)} />
-                <DataRow label="Dead token" value={shortAddress(proposal.deadToken)} mono />
+                <DataRow
+                  label="Dead token"
+                  value={shortAddress(proposal.deadToken)}
+                  mono
+                  href={explorerAddress(proposal.deadToken)}
+                />
                 <DataRow label="Ends" value={formatDateTime(proposal.endTime)} />
                 <DataRow
                   label="Time left"
@@ -1054,16 +1255,25 @@ export default function Home() {
             ["Core", REFLOW.core],
             ["BondingCurveFactory", REFLOW.bondingCurveFactory],
             ["DexRouter", REFLOW.dexRouter],
+            ["UniswapV2Factory", REFLOW.dexFactory],
             ["LPRecyclingVault", REFLOW.lpVault],
             ["ActivityMonitor", REFLOW.activityMonitor],
             ["Governor", REFLOW.governor],
             ["WNative", REFLOW.wNative],
             ["FeeVault", REFLOW.feeVault],
           ].map(([label, address]) => (
-            <DataRow key={label} label={label} value={isSetAddress(address) ? shortAddress(address) : "not set"} mono />
+            <DataRow
+              key={label}
+              label={label}
+              value={isSetAddress(address) ? shortAddress(address) : "not set"}
+              mono
+              href={isSetAddress(address) ? explorerAddress(address) : undefined}
+            />
           ))}
         </dl>
-        <p className="mt-4 text-xs text-zinc-500">Network: {monadTestnet.name} · chain {monadTestnet.id}</p>
+        <p className="mt-4 text-xs text-zinc-500">
+          Network: {monadTestnet.name} · chain {monadTestnet.id} · loaded from deployments/monadTestnet.json
+        </p>
       </section>
     </div>
   );

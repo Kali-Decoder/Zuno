@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { monadTestnet } from "@/app/config/chains";
 import { useToastContext } from "@/app/contexts/ToastContext";
+import { getFreshPublicProvider } from "@/app/lib/provider";
+import { ZERO } from "@/app/lib/format";
 
 export type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -16,6 +18,7 @@ export function useWallet() {
   const [account, setAccount] = useState("");
   const [chainId, setChainId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nativeBalance, setNativeBalance] = useState(ZERO);
 
   const ethereum =
     typeof window !== "undefined"
@@ -26,6 +29,28 @@ export function useWallet() {
   const isCorrectNetwork = chainId === monadTestnet.id;
   const explorerBase = monadTestnet.blockExplorers?.default.url ?? "https://testnet.monadvision.com";
 
+  const refreshBalance = useCallback(
+    async (address = account) => {
+      if (!address) {
+        setNativeBalance(ZERO);
+        return;
+      }
+      try {
+        const provider = getFreshPublicProvider();
+        setNativeBalance(await provider.getBalance(address));
+      } catch {
+        try {
+          if (!ethereum) return;
+          const browser = new ethers.BrowserProvider(ethereum as ethers.Eip1193Provider);
+          setNativeBalance(await browser.getBalance(address));
+        } catch {
+          setNativeBalance(ZERO);
+        }
+      }
+    },
+    [account, ethereum]
+  );
+
   const connectWallet = useCallback(async () => {
     if (!ethereum) {
       showError("Install MetaMask or another EVM wallet.");
@@ -33,11 +58,14 @@ export function useWallet() {
     }
     try {
       const accounts = (await ethereum.request({ method: "eth_requestAccounts" })) as string[];
-      if (accounts.length > 0) setAccount(accounts[0]);
+      if (accounts.length > 0) {
+        setAccount(accounts[0]);
+        await refreshBalance(accounts[0]);
+      }
     } catch (error) {
       showError(error instanceof Error ? error.message : "Wallet connection failed.");
     }
-  }, [ethereum, showError]);
+  }, [ethereum, refreshBalance, showError]);
 
   const switchToMonad = useCallback(async () => {
     if (!ethereum) {
@@ -95,12 +123,13 @@ export function useWallet() {
       try {
         const signer = await getProvider().getSigner();
         await fn(signer);
+        await refreshBalance(account);
         return true;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [account, ethereum, getProvider, isCorrectNetwork, showError, showInfo]
+    [account, ethereum, getProvider, isCorrectNetwork, refreshBalance, showError, showInfo]
   );
 
   useEffect(() => {
@@ -110,7 +139,9 @@ export function useWallet() {
         const accounts = (await ethereum.request({ method: "eth_accounts" })) as string[];
         const chainHex = (await ethereum.request({ method: "eth_chainId" })) as string;
         setChainId(Number.parseInt(chainHex, 16));
-        setAccount(accounts[0] ?? "");
+        const nextAccount = accounts[0] ?? "";
+        setAccount(nextAccount);
+        if (nextAccount) await refreshBalance(nextAccount);
       } catch {
         showError("Unable to read wallet state.");
       }
@@ -119,7 +150,9 @@ export function useWallet() {
 
     const onAccountsChanged = (accounts: unknown) => {
       const list = Array.isArray(accounts) ? (accounts as string[]) : [];
-      setAccount(list[0] ?? "");
+      const next = list[0] ?? "";
+      setAccount(next);
+      refreshBalance(next);
     };
     const onChainChanged = (value: unknown) => {
       const chainHex = typeof value === "string" ? value : "0x0";
@@ -132,12 +165,20 @@ export function useWallet() {
       ethereum.removeListener("accountsChanged", onAccountsChanged);
       ethereum.removeListener("chainChanged", onChainChanged);
     };
-  }, [ethereum, showError]);
+  }, [ethereum, refreshBalance, showError]);
+
+  useEffect(() => {
+    if (!account) return;
+    refreshBalance(account);
+    const timer = setInterval(() => refreshBalance(account), 12000);
+    return () => clearInterval(timer);
+  }, [account, chainId, refreshBalance]);
 
   return {
     account,
     chainId,
     ethereum,
+    nativeBalance,
     isConnected,
     isCorrectNetwork,
     isSubmitting,
@@ -146,5 +187,6 @@ export function useWallet() {
     switchToMonad,
     getProvider,
     runWrite,
+    refreshBalance,
   };
 }

@@ -1,9 +1,9 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { ToastProvider } from "./contexts/ToastContext";
+import { ToastProvider, useToastContext } from "./contexts/ToastContext";
 import { ToastContainer } from "./components/Toast";
-import { useToastContext } from "./contexts/ToastContext";
+import { WalletProvider } from "./contexts/WalletContext";
 
 function ToastContainerWrapper() {
   const { toasts, removeToast } = useToastContext();
@@ -16,8 +16,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        {children}
-        <ToastContainerWrapper />
+        <WalletProvider>
+          {children}
+          <ToastContainerWrapper />
+        </WalletProvider>
       </ToastProvider>
     </QueryClientProvider>
   );
