@@ -16,14 +16,7 @@
     "incremental": true,
     "paths": {
       "~~/*": ["./*"],
-      "@/*": ["./src/*"],
-      "@privy-io/react-auth": ["./mocks/privy.tsx"],
-      "@privy-io/wagmi": ["./mocks/privy-wagmi.tsx"],
-      "@rainbow-me/rainbowkit": ["./mocks/rainbowkit.tsx"],
-      "wagmi": ["./mocks/wagmi.ts"],
-      "@wagmi/core": ["./mocks/wagmi-core.ts"],
-      "wagmi/actions": ["./mocks/wagmi-actions.ts"],
-      "wagmi/query": ["./mocks/wagmi-query.ts"]
+      "@/*": ["./src/*"]
     },
     "plugins": [
       {

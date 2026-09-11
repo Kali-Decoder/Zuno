@@ -1,6 +1,4 @@
 // @ts-check
-const path = require("path");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
@@ -10,6 +8,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  transpilePackages: [],
   images: {
     remotePatterns: [
       {
@@ -26,16 +25,15 @@ const nextConfig = {
     config.infrastructureLogging = { level: "error" };
     config.resolve.fallback = { fs: false, net: false, tls: false };
     config.externals.push("pino-pretty", "lokijs", "encoding");
+    const path = require("path");
+    const webpack = require("webpack");
+    const empty = path.resolve(__dirname, "lib/webpack-empty.js");
     config.resolve.alias = {
       ...config.resolve.alias,
-      "@privy-io/react-auth": path.resolve(__dirname, "mocks/privy.tsx"),
-      "@privy-io/wagmi": path.resolve(__dirname, "mocks/privy-wagmi.tsx"),
-      "@rainbow-me/rainbowkit": path.resolve(__dirname, "mocks/rainbowkit.tsx"),
-      wagmi: path.resolve(__dirname, "mocks/wagmi.ts"),
-      "@wagmi/core": path.resolve(__dirname, "mocks/wagmi-core.ts"),
-      "wagmi/actions": path.resolve(__dirname, "mocks/wagmi-actions.ts"),
-      "wagmi/query": path.resolve(__dirname, "mocks/wagmi-query.ts"),
+      "@react-native-async-storage/async-storage": empty,
     };
+    // Optional Coinbase x402 deps pulled transitively by wagmi — unused
+    config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^@x402(\/.*)?$/, empty));
     return config;
   },
 };
