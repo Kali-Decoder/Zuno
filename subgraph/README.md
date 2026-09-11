@@ -8,20 +8,43 @@ Indexes bonding-curve **Create / Buy / Sell / Listing** and DEX **Swap** on **mo
 - `graph codegen` + `graph build`: ✅ done in this folder
 - Skipped `graph init reflow` — this repo already has the Reflow subgraph (no need to scaffold again)
 
-## Deploy to Studio
+## Deploy
 
-1. Create a subgraph named **`reflow`** in [Subgraph Studio](https://thegraph.com/studio/) (network: **Monad Testnet**).
-2. Copy the **Deploy Key** from Studio.
-3. Authenticate and deploy from this directory:
+### Subgraph Studio (blocked on Monad Testnet)
 
-```bash
-cd subgraph
-graph auth --studio <YOUR_DEPLOY_KEY>
-npm run deploy
-# or: graph deploy --studio reflow
+`network: monad-testnet` in `subgraph.yaml` is correct, but **Studio’s registrar does not host Monad Testnet yet** (`services.subgraphs: []` in The Graph networks registry). Deploying to `https://api.studio.thegraph.com/deploy/` fails with:
+
+```text
+network not supported by registrar: no network monad-testnet found on chain ethereum
 ```
 
-When prompted for a version label, use e.g. `v0.0.1`.
+Studio currently lists **Monad mainnet** (`monad`) only. Do **not** change the network slug to `monad` — that would index the wrong chain.
+
+### Goldsky (recommended for Monad Testnet)
+
+Monad’s docs recommend Goldsky for testnet subgraphs. Same manifest (`network: monad-testnet`):
+
+```bash
+# install once: npm i -g @goldskycom/cli && goldsky login
+cd subgraph
+npm run codegen && npm run build
+goldsky subgraph deploy reflow/1.0.0 --path .
+```
+
+Then set the Goldsky GraphQL URL in `ui-frontend/.env.local`:
+
+```bash
+NEXT_PUBLIC_SUBGRAPH_URL=https://api.goldsky.com/api/public/<PROJECT>/subgraphs/reflow/1.0.0/gn
+SUBGRAPH_URL=...
+```
+
+### Auth note (Graph CLI)
+
+Newer Graph CLI has no `--studio` flag:
+
+```bash
+graph auth <YOUR_DEPLOY_KEY>
+```
 
 ## Local build
 

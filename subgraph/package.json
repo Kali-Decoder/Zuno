@@ -5,9 +5,10 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "auth": "graph auth --studio",
-    "deploy": "graph deploy --studio reflow",
-    "deploy:goldsky": "goldsky subgraph deploy reflow-monad-testnet/1.0.0 --path ."
+    "auth": "graph auth",
+    "deploy": "graph deploy reflow --version-label v0.0.1 -g https://api.studio.thegraph.com/deploy/",
+    "deploy:test": "bash scripts/deploy-and-test.sh",
+    "test:query": "curl -sS -X POST \"${SUBGRAPH_URL:-https://api.studio.thegraph.com/query/134675/reflow/version/latest}\" -H 'content-type: application/json' -d '{\"query\":\"{ _meta { block { number } deployment hasIndexingErrors } tokens(first:5){ id name symbol tradeCount } trades(first:5){ id isBuy priceNative } }\"}' | python3 -m json.tool"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.97.0",

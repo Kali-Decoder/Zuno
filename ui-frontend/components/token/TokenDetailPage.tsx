@@ -201,14 +201,18 @@ function parsePriceLabel(label?: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-async function fetchIndexedChart(tokenId: string, tf: ChartTimeframe): Promise<PriceChartPoint[]> {
+async function fetchIndexedChart(
+  tokenId: string,
+  tf: ChartTimeframe,
+): Promise<{ series: PriceChartPoint[]; source: "subgraph" | "mongo" | "none" }> {
   try {
     const res = await fetch(`/api/tokens/${tokenId}/chart?tf=${tf}`);
     const data = await res.json();
     const series = (data.series || []) as PriceChartPoint[];
-    return series.length > 1 ? series : [];
+    const source = (data.source || "none") as "subgraph" | "mongo" | "none";
+    return { series: series.length > 1 ? series : [], source: series.length > 1 ? source : "none" };
   } catch {
-    return [];
+    return { series: [], source: "none" };
   }
 }
 
@@ -216,7 +220,7 @@ function TokenChart({ token }: { token: TokenDetail }) {
   const [tf, setTf] = useState<ChartTimeframe>("1H");
   const [series, setSeries] = useState<PriceChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<"index" | "rpc" | null>(null);
+  const [source, setSource] = useState<"subgraph" | "mongo" | "rpc" | null>(null);
   const spot = token.priceNative ?? parsePriceLabel(token.priceLabel);
 
   useEffect(() => {
@@ -225,9 +229,9 @@ function TokenChart({ token }: { token: TokenDetail }) {
     (async () => {
       try {
         const indexed = await fetchIndexedChart(token.id, tf);
-        if (!cancelled && indexed.length > 1) {
-          setSeries(indexed);
-          setSource("index");
+        if (!cancelled && indexed.series.length > 1) {
+          setSeries(indexed.series);
+          setSource(indexed.source === "none" ? "mongo" : indexed.source);
           return;
         }
         const points = await getTokenPriceSeries(token.id, tf, spot);
@@ -264,12 +268,15 @@ function TokenChart({ token }: { token: TokenDetail }) {
   const linePath = hasSeries ? smoothLinePath(chartPoints, 0.5) : "";
   const areaPath = hasSeries ? smoothAreaPath(chartPoints, h - pad, 0.5) : "";
 
+  const sourceLabel =
+    source === "subgraph" ? " · graph" : source === "mongo" ? " · indexed" : source === "rpc" ? " · live" : "";
+
   return (
     <section className="flex h-full flex-col rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
       <div className="mb-[1.4rem] flex flex-col gap-[1rem] sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[1.15rem] uppercase tracking-[0.06em] text-white/30">
-            Overview{source === "index" ? " · indexed" : source === "rpc" ? " · live" : ""}
+            Overview{sourceLabel}
           </p>
           <p className="mt-[0.25rem] text-[2rem] font-semibold tabular-nums text-white">
             {token.priceLabel && token.priceLabel !== "—" ? token.priceLabel : token.marketCapLabel}
@@ -323,7 +330,7 @@ function TokenChart({ token }: { token: TokenDetail }) {
               {loading ? "Loading chart…" : "Waiting for spot price…"}
             </p>
             <p className="max-w-[32rem] text-[1.15rem] text-white/25">
-              Indexed candles load first; sync runs via /api/tokens/sync.
+              Prefers The Graph, then Mongo candles, then live RPC.
             </p>
           </div>
         )}
@@ -425,7 +432,7 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
       {tab === "trades" ? (
         trades.length === 0 ? (
           <div className="rounded-[1.2rem] border border-dashed border-white/10 px-[1.4rem] py-[3.5rem] text-center text-[1.25rem] text-white/30">
-            {loading ? "Loading trades…" : "No trades indexed yet — sync will pick up Buy/Sell events"}
+            {loading ? "Loading trades…" : "No trades yet — deploy/sync the subgraph or wait for Buy/Sell events"}
           </div>
         ) : (
           <div className="space-y-[0.3rem]">

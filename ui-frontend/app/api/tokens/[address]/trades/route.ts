@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getIndexedTrades } from "~~/lib/tokens/tradeSync";
+import { resolveTrades } from "~~/lib/tokens/marketData";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: { address: string } };
 
-/** Indexed trade feed for a token (Mongo). */
+/** Trade feed: The Graph → Mongo index. */
 export async function GET(req: Request, ctx: Ctx) {
   try {
     const { address } = ctx.params;
@@ -14,8 +14,8 @@ export async function GET(req: Request, ctx: Ctx) {
     }
     const url = new URL(req.url);
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 40)));
-    const trades = await getIndexedTrades(address, limit);
-    return NextResponse.json({ ok: true, source: "index", trades });
+    const { trades, source } = await resolveTrades(address, limit);
+    return NextResponse.json({ ok: true, source, trades });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Trades fetch failed";
     return NextResponse.json({ ok: false, error: message, trades: [] }, { status: 500 });
