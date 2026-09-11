@@ -130,7 +130,7 @@ const CheckEligibility = () => {
           <div className="flex flex-col items-center gap-[0.4rem]">
             <DialogTitle className="text-[2rem]">🎉 Airdrop already claimed!</DialogTitle>
             <DialogDescription className="md:text-[1.4rem] leading-[150%] text-center font-semibold text-white/60">
-              You have already claimed your airdrop tokens. Thank you for being a part of the Reflow!
+              You have already claimed your airdrop tokens. Thank you for being a part of ZUNO!
             </DialogDescription>
           </div>
         </>

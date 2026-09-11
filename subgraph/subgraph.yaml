@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: BondingCurveFactory
-    network: monad-testnet
+    network: arc-testnet
     source:
-      address: "0x54eE35d85740CbB12B5cAB18A179ff6F5C7b28FF"
+      address: "0x8133D59B8b59C1210cf6B28e7833810aA691A33a"
       abi: BondingCurveFactory
-      startBlock: 0
+      startBlock: 61615630
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -28,7 +28,7 @@ dataSources:
 templates:
   - kind: ethereum/contract
     name: BondingCurve
-    network: monad-testnet
+    network: arc-testnet
     source:
       abi: BondingCurve
     mapping:
@@ -55,7 +55,7 @@ templates:
       file: ./src/curve.ts
   - kind: ethereum/contract
     name: UniswapV2Pair
-    network: monad-testnet
+    network: arc-testnet
     source:
       abi: UniswapV2Pair
     mapping:

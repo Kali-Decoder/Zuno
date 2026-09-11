@@ -15,10 +15,13 @@ const TipsPage = () => {
             <span className="text-accent-500 font-medium text-sm">Coming Soon</span>
           </div>
 
-          <h1 className="text-[3rem] sm:text-[4rem] font-bold text-white mb-4">Reflow</h1>
+          <h1 className="text-[3rem] sm:text-[4rem] font-bold text-white mb-4">ZUNO</h1>
+          <p className="text-[1.05rem] text-accent-500/90 mb-3 tracking-wide">
+            Where liquidity finds its next home.
+          </p>
 
           <p className="text-[1.2rem] text-white/70 max-w-2xl mx-auto leading-relaxed">
-            Right now, you’re using the first version of Reflow, our{" "}
+            Right now, you’re using the first version of ZUNO, our{" "}
             <span className="text-accent-500 font-semibold">liquidity recycling launchpad </span>
             with bonding-curve launches. <br></br>Soon, we’re unlocking the full experience: anyone will
             be able to launch tokens freely (permissionless), powered by bonding curves and recycle flows
@@ -33,7 +36,7 @@ const TipsPage = () => {
             <div className="relative">
               <Image
                 src="/cultdemo.png"
-                alt="Reflow platform preview"
+                alt="ZUNO platform preview"
                 width={1200}
                 height={800}
                 className="w-full h-auto filter blur-sm"
@@ -46,7 +49,7 @@ const TipsPage = () => {
           </div>
 
           {/* Image Caption */}
-          <p className="text-center text-white/50 text-sm mt-4">Preview of the Reflow trading platform</p>
+          <p className="text-center text-white/50 text-sm mt-4">Preview of the ZUNO trading platform</p>
         </div>
 
         {/* Call to Action */}

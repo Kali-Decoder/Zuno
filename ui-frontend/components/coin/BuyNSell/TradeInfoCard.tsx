@@ -58,8 +58,8 @@ function TradeInfoCard({
       ? Number(formatUnits(tokenBalance, decimals)).toFixed(4)
       : "0.00";
 
-  const inputSymbol = isBuy ? "MON" : metadata.symbol;
-  const receiveSymbol = isBuy ? metadata.symbol : "MON";
+  const inputSymbol = isBuy ? "USDC" : metadata.symbol;
+  const receiveSymbol = isBuy ? metadata.symbol : "USDC";
   const receiveAmount = formatToken(tokenQuote ?? 0n, decimals, 4);
 
   return (

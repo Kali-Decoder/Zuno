@@ -1,5 +1,5 @@
 """
-Reflow subgraph — indexes bonding-curve + DEX pool activity on Monad Testnet.
+ZUNO subgraph — indexes bonding-curve + DEX pool activity on Arc Testnet.
 """
 
 type Token @entity(immutable: false) {

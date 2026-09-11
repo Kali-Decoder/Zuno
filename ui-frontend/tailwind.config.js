@@ -63,6 +63,9 @@ module.exports = {
         shine: "shine 5s infinite linear",
         shake: "shake 0.82s cubic-bezier(.36,.07,.19,.97) both",
         float: "float 4s ease-in-out infinite",
+        "zuno-pulse": "zuno-pulse 1.15s ease-in-out infinite",
+        "zuno-glow": "zuno-glow 1.4s ease-in-out infinite",
+        "zuno-spin": "zuno-spin 1.1s linear infinite",
       },
       keyframes: {
         shine: {
@@ -79,6 +82,19 @@ module.exports = {
           "30%, 50%, 70%": { transform: "translate3d(-4px, 0, 0)" },
           "40%, 60%": { transform: "translate3d(4px, 0, 0)" },
         },
+        "zuno-pulse": {
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(0.9)", opacity: "0.85" },
+        },
+        "zuno-glow": {
+          "0%, 100%": { opacity: "0.35", transform: "scale(0.92)" },
+          "50%": { opacity: "0.85", transform: "scale(1.08)" },
+        },
+        "zuno-spin": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+
         float: {
           "0%, 100%": {
             transform: "translateY(0px) rotate(0deg)",

@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import ErrorMsg from "~~/components/common/ErrorMsg";
 import HoverButton from "~~/components/common/HoverButton";
 import { Spinner } from "~~/components/common/Spinner";
-import { buyToken, getCurveProgress, sellToken } from "~~/lib/reflow/actions";
+import { buyToken, getCurveProgress, getTokenMarketStats, sellToken } from "~~/lib/reflow/actions";
 import { persistTokenPatch } from "~~/lib/tokens/adapters";
 import { decodeCallError } from "~~/lib/reflow/tx";
 import { useReflowWallet } from "~~/hooks/useReflowWallet";
@@ -23,7 +23,7 @@ export default function TradeButton({
   amount: string;
   poolAddress: `0x${string}`;
   userAddress: `0x${string}`;
-  refetchData: (() => void) | null;
+  refetchData: (() => void | Promise<void>) | null;
   spenderAddress: `0x${string}`;
   referralAddress: `0x${string}` | null;
   tokenAddress: `0x${string}` | null;
@@ -31,10 +31,13 @@ export default function TradeButton({
 }) {
   const wallet = useReflowWallet();
   const metadata = useTokenStore(s => s.metadata);
+  const bumpDataEpoch = useTokenStore(s => s.bumpDataEpoch);
+  const storeRefetch = useTokenStore(s => s.refetch);
   const [isPendingBuy, setIsPendingBuy] = useState(false);
   const [isPendingSell, setIsPendingSell] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** Persist latest on-chain market / curve state to Mongo after a fill. */
   const touchMongo = async () => {
     if (!tokenAddress) return;
     let progress: number | undefined;
@@ -42,13 +45,28 @@ export default function TradeButton({
     let listed = isGraduated;
     let curve = "";
     let pair = "";
+    let marketCapUsd: number | undefined;
+    let volumeUsd: number | undefined;
+    let priceNative: number | undefined;
     try {
-      const p = await getCurveProgress(tokenAddress);
+      const [p, stats] = await Promise.all([
+        getCurveProgress(tokenAddress),
+        getTokenMarketStats(tokenAddress).catch(() => null),
+      ]);
       progress = p.progress;
       curveLocked = p.locked;
       listed = p.listed || isGraduated;
       curve = p.curve;
       pair = p.pair;
+      if (stats) {
+        marketCapUsd = stats.marketCapUsd;
+        volumeUsd = stats.volumeUsd;
+        priceNative = stats.priceNative;
+        if (stats.curve) curve = stats.curve;
+        if (stats.pair) pair = stats.pair;
+        if (stats.listed) listed = true;
+        if (stats.progress != null) progress = stats.progress;
+      }
     } catch {
       /* optional */
     }
@@ -65,7 +83,33 @@ export default function TradeButton({
       phase: listed ? "listed" : curveLocked ? "locked" : "bonding",
       curve: curve || undefined,
       pair: pair || undefined,
+      marketCapUsd,
+      volumeUsd,
+      priceNative,
     });
+  };
+
+  const afterTradeSuccess = async (kind: "buy" | "sell") => {
+    toast.success(kind === "buy" ? "Buy submitted" : "Sell submitted");
+    bumpDataEpoch();
+    try {
+      await touchMongo();
+    } catch {
+      /* non-blocking */
+    }
+    await Promise.resolve(refetchData?.());
+    storeRefetch?.();
+
+    // Subgraph / RPC lag — refresh again so chart, trades, and mcap catch up.
+    window.setTimeout(() => {
+      bumpDataEpoch();
+      storeRefetch?.();
+      void Promise.resolve(refetchData?.());
+    }, 2_500);
+    window.setTimeout(() => {
+      bumpDataEpoch();
+      storeRefetch?.();
+    }, 6_000);
   };
 
   const writeBuyAsyncWithParams = async () => {
@@ -90,9 +134,7 @@ export default function TradeButton({
         });
       });
       if (ok) {
-        toast.success("Buy submitted");
-        await touchMongo();
-        refetchData?.();
+        await afterTradeSuccess("buy");
       }
     } catch (e: any) {
       const msg = decodeCallError(e, "buy");
@@ -124,9 +166,7 @@ export default function TradeButton({
         });
       });
       if (ok) {
-        toast.success("Sell submitted");
-        await touchMongo();
-        refetchData?.();
+        await afterTradeSuccess("sell");
       }
     } catch (e: any) {
       const msg = decodeCallError(e, "sell");

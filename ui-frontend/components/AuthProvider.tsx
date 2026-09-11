@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo } from "react";
 import { useAccount, useChainId } from "wagmi";
-import { monadTestnet } from "~~/config/chains";
+import { arcTestnet } from "~~/config/chains";
 
 type AuthContextType = {
   isNewUser: boolean;
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const ready = status !== "connecting" && status !== "reconnecting";
   const isValidChain = useMemo(() => {
     if (!isConnected) return true;
-    return chainId === monadTestnet.id;
+    return chainId === arcTestnet.id;
   }, [chainId, isConnected]);
 
   const user = address ? { wallet: { address } } : null;

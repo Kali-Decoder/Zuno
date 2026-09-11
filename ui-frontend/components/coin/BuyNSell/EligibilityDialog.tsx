@@ -130,7 +130,7 @@ const EligibilityDialog = ({
                   <h4 className="text-[1.6rem] font-bold text-red-400 mb-2">Not Eligible</h4>
                 </div>
                 <p className="text-[1.4rem] text-white/80 mb-4">
-                  You are not eligible yet. Trade more on the tokens launched on Reflow to be eligible for pre-buy.
+                  You are not eligible yet. Trade more on the tokens launched on ZUNO to be eligible for pre-buy.
                 </p>
               </div>
             )}

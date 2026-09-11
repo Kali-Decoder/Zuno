@@ -7,6 +7,7 @@ import { formatUnits, zeroAddress } from "viem";
 import TradeButton from "./PlaceTradeButton";
 import ConnectWalletButton from "~~/components/common/ConnectWalletButton";
 import { REFLOW } from "~~/config/reflow";
+import { ARC_CHAIN_LOGO_SRC } from "~~/icons/logos";
 import { maxBuyAmountIn, quoteTrade } from "~~/lib/reflow/actions";
 import { formatToken, isSetAddress } from "~~/lib/reflow/format";
 import { useAccount, useBalance } from "wagmi";
@@ -24,13 +25,12 @@ function AssetPill({
   imageUrl?: string;
   native?: boolean;
 }) {
+  const src = native ? ARC_CHAIN_LOGO_SRC : imageUrl;
   return (
     <div className="inline-flex items-center gap-[0.55rem] rounded-full bg-[#2a2a2a] py-[0.45rem] pl-[0.45rem] pr-[0.9rem]">
       <span className="relative size-[2.2rem] overflow-hidden rounded-full bg-black/40">
-        {native ? (
-          <span className="grid size-full place-content-center text-[1rem] font-bold text-accent-500">M</span>
-        ) : imageUrl ? (
-          <Image src={imageUrl} alt={symbol} fill className="object-cover" sizes="22px" />
+        {src ? (
+          <Image src={src} alt={symbol} fill className="object-cover" sizes="22px" />
         ) : (
           <span className="grid size-full place-content-center text-[1rem] font-bold text-white/70">
             {symbol.slice(0, 1)}
@@ -129,7 +129,7 @@ function Trade({
   const symbol = tokenSymbol || metadata?.symbol || "TKN";
   const name = tokenName || metadata?.name || symbol;
   const imageUrl =
-    tokenImage || (typeof metadata?.image === "string" ? metadata.image : undefined) || "/gmonad.jpeg";
+    tokenImage || (typeof metadata?.image === "string" ? metadata.image : undefined) || "/zuno-logo.png";
 
   useEffect(() => {
     let cancelled = false;
@@ -166,6 +166,8 @@ function Trade({
 
   const refreshBalances = async () => {
     await Promise.all([refetchEth(), refetchTokenBal()]);
+    setAmount("");
+    setQuote(undefined);
     refetch?.();
   };
 
@@ -229,11 +231,11 @@ function Trade({
           amount={amount}
           editable
           onAmountChange={handleAmountChange}
-          symbol={isBuy ? "MON" : symbol}
+          symbol={isBuy ? "USDC" : symbol}
           imageUrl={isBuy ? undefined : imageUrl}
           native={isBuy}
           footerLeft="$0.00"
-          footerRight={isBuy ? `MON ${monBalLabel}` : `${symbol} ${tokenBalLabel}`}
+          footerRight={isBuy ? `USDC ${monBalLabel}` : `${symbol} ${tokenBalLabel}`}
         />
 
         <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
@@ -250,7 +252,7 @@ function Trade({
         <SwapPanel
           label="Buy"
           amount={quoteLabel}
-          symbol={isBuy ? symbol : "MON"}
+          symbol={isBuy ? symbol : "USDC"}
           imageUrl={isBuy ? imageUrl : undefined}
           native={!isBuy}
           footerLeft="$0.00"

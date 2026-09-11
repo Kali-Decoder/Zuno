@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ token: token || null, tokens: token ? [token] : [] });
     }
 
-    const q: Record<string, unknown> = {};
+    const q: Record<string, unknown> = { chainId: 5042002 };
     if (graduated === "true") q.graduated = true;
     if (graduated === "false") q.graduated = false;
     if (phase) q.phase = phase;
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
           name: body.name,
           symbol: body.symbol,
           decimals: asNumber(body.decimals, 18),
-          chainId: asNumber(body.chainId, 10143),
+          chainId: asNumber(body.chainId, 5042002),
           curve: asLower(body.curve),
           pair: asLower(body.pair),
           imageUrl: body.imageUrl || "/gmonad.jpeg",
