@@ -80,6 +80,16 @@ export interface TokenMetadata {
   circulatingSupply?: string;
 }
 
+/** Lightweight page snapshot used by the token store (Mongo + chain hydrate). */
+export type CultTokenPageData = {
+  id?: `0x${string}`;
+  name?: string;
+  symbol?: string;
+  isGraduated?: boolean;
+  poolAddress?: string;
+  curve?: string;
+};
+
 export interface TokenCreated {
   id: string;
   name: string;

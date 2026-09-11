@@ -1,0 +1,16 @@
+.table-header-title {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+tbody tr {
+  color: #fff;
+}
+
+tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+th,
+td {
+  white-space: nowrap;
+}

@@ -78,7 +78,7 @@ export function apiToExploreToken(t: ApiToken): ExploreToken {
     imageUrl: t.imageUrl || "/gmonad.jpeg",
     marketCapLabel: formatUsd(t.marketCapUsd),
     progress: Math.min(100, Math.max(0, t.progress ?? 0)),
-    timeAgo: timeAgo(t.lastBuyAt || t.createdAt),
+    timeAgo: timeAgo(t.createdAt),
     badge,
     volume: t.volumeUsd ?? 0,
     createdAt: created,
@@ -93,7 +93,7 @@ export function apiToGraduatedToken(t: ApiToken): GraduatedToken {
     symbol: t.symbol,
     imageUrl: t.imageUrl || "/gmonad.jpeg",
     marketCapLabel: formatUsd(t.marketCapUsd),
-    timeAgo: timeAgo(t.listedAt || t.createdAt),
+    timeAgo: timeAgo(t.createdAt),
     showV2: true,
   };
 }
@@ -135,7 +135,7 @@ export function apiToTokenDetail(t: ApiToken): TokenDetail {
     burnedUsd: "—",
     burnedPct: "—",
     progress: t.progress,
-    timeAgo: timeAgo(t.lastBuyAt || t.createdAt),
+    timeAgo: timeAgo(t.createdAt),
     graduated,
     curve: t.curve,
     pair: t.pair,

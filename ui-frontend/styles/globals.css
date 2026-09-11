@@ -36,14 +36,14 @@
 }
 
 :root {
-  /* Colors */
+  /* Colors — flat dark + neon lime (Explore theme) */
   --color-white: 0 0% 100%;
-  --color-primary-800: 203 32% 8%;
-  --color-primary-500: 203 32% 16%;
-  --color-primary-400: 203 32% 18%;
-  --color-primary-300: 205 16% 15%;
-  --color-accent-500: 77 100% 59%;
-  --color-accent-600: 77 100% 39%;
+  --color-primary-800: 0 0% 6%;
+  --color-primary-500: 0 0% 10%;
+  --color-primary-400: 0 0% 12%;
+  --color-primary-300: 0 0% 14%;
+  --color-accent-500: 74 100% 58%;
+  --color-accent-600: 74 90% 42%;
   --color-success-500: 147 87% 44%;
   --color-success-800: 147 55% 17%;
   --color-warning-500: 16 77% 68%;
@@ -51,6 +51,7 @@
   --color-danger-500: 0 86% 59%;
   --color-danger-600: 0 86% 54%;
   --color-yellow-500: 50 100% 65%;
+
 
   /* Easing */
   --ease-in-quad: cubic-bezier(0.55, 0.085, 0.68, 0.53);
@@ -75,27 +76,32 @@
   --ease-in-out-circ: cubic-bezier(0.785, 0.135, 0.15, 0.86);
 
   /* Spacing  */
-  --container-px: 12.8rem;
+  --container-px: 2.4rem;
   --container-py: 2.4rem;
   --sections-gap: 16rem;
 
-  /* Sizes */
-  --size-unit: 10;
+  /* Sizes — higher unit = larger rem across the whole UI */
+  --size-unit: 10.5;
   --size-container: 1512;
-  --max-size-container: 1920px;
+  --max-size-container: 1440px;
   --min-size-container: 680px;
+  /* Shared content + navbar column */
+  --page-max-width: 1100px;
 }
 
 html {
-  font-size: calc(
-    (clamp(var(--min-size-container), 100vw, var(--max-size-container)) / var(--size-container)) * var(--size-unit)
+  font-size: max(
+    10px,
+    calc(
+      (clamp(var(--min-size-container), 100vw, var(--max-size-container)) / var(--size-container)) * var(--size-unit)
+    )
   );
   overflow-x: hidden;
 }
 
 @layer base {
   body {
-    @apply text-[1.6rem] bg-primary-800 text-white font-sans min-w-full;
+    @apply text-[1.6rem] bg-primary-800 text-white font-sans min-w-full leading-relaxed;
   }
 
   .h1 {
@@ -121,6 +127,32 @@ html {
   .tabs-list {
     @apply bg-primary-800 w-full text-center mb-[2rem];
   }
+
+  /* Shared page / navbar width */
+  .page-container {
+    @apply mx-auto w-full;
+    max-width: var(--page-max-width);
+    padding-left: var(--container-px);
+    padding-right: var(--container-px);
+  }
+
+  /* Soft elevation used by cards, footer, section panels */
+  .surface-elevated {
+    box-shadow: none;
+  }
+
+  .surface-elevated-sm {
+    box-shadow: none;
+  }
+
+  /* Token cards */
+  .token-card-surface {
+    box-shadow: none;
+  }
+
+  .token-card-surface:hover {
+    box-shadow: none;
+  }
 }
 
 [data-fade-y-desktop="1"] {
@@ -144,24 +176,20 @@ html {
   background-size: 300% 100%;
   background-position: 0% 50%;
   animation: slideGradient 3s linear infinite alternate;
-  box-shadow: 0px 0px 8px 4px rgba(253, 29, 29, 0.3);
+  box-shadow: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .shadow-glow {
-  box-shadow: 0 0 10px 3px rgba(172, 255, 47, 0.4);
-  animation: pulse-glow 1s ease-in-out;
+  box-shadow: none;
+  animation: none;
 }
 
 @keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 3px 1px rgba(172, 255, 47, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 12px 5px rgba(172, 255, 47, 0.5);
-  }
+  0%,
+  50%,
   100% {
-    box-shadow: 0 0 3px 1px rgba(172, 255, 47, 0.2);
+    box-shadow: none;
   }
 }
 
@@ -265,26 +293,27 @@ html {
 @media only screen and (max-width: 540px) {
   :root {
     --container-py: 1.6rem;
-    --container-px: 0.8rem;
+    --container-px: 2.4rem;
     --sections-gap: 6.4rem;
 
-    --size-container: 540px;
+    --size-unit: 10;
+    --size-container: 540;
     --min-size-container: 320px;
   }
 
   body {
-    @apply text-[1rem] bg-primary-800 text-white font-sans min-w-full;
+    @apply text-[1.3rem] bg-primary-800 text-white font-sans min-w-full leading-relaxed;
   }
 
   .h1 {
-    @apply text-[2rem] font-bold leading-tight;
+    @apply text-[2.8rem] font-bold leading-tight;
   }
 
   .h2 {
-    @apply text-[2rem] font-bold leading-tight;
+    @apply text-[2.8rem] font-bold leading-tight;
   }
 
   .tabs-wrapper {
-    @apply bg-white/5 border border-white/10 rounded-md p-[0.4rem] flex flex-col gap-[1.2rem];
+    @apply bg-white/5 border border-white/10 rounded-md p-[1.2rem] flex flex-col gap-[1.2rem];
   }
 }

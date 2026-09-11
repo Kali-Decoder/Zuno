@@ -1,0 +1,18 @@
+.pagination-container {
+  list-style-type: none;
+  @apply flex divide-x divide-gray-800 border-gray-800 justify-center;
+}
+
+.pagination-item {
+  @apply !py-2 !px-3;
+  @apply rounded-none !font-semibold;
+  font-size: 10px;
+}
+
+.selected {
+  @apply !bg-gray-800;
+}
+
+.ellipsis {
+  cursor: default;
+}
