@@ -47,6 +47,7 @@ export function applyMarketStatsToDetail(detail: TokenDetail, stats: TokenMarket
     volumeNative: stats.volumeNative,
     txCount: stats.txCountInWindow,
     priceLabel: stats.priceLabel,
+    priceNative: stats.priceNative,
     progress: stats.progress || detail.progress,
     graduated: stats.listed || detail.graduated,
     curve: stats.curve || detail.curve,

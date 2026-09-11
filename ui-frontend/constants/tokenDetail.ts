@@ -24,6 +24,7 @@ export type TokenDetail = {
   vaultStatus?: string;
   creator?: string;
   priceLabel?: string;
+  priceNative?: number;
   marketCapUsd?: number;
   marketCapNative?: number;
   liquidityNative?: number;

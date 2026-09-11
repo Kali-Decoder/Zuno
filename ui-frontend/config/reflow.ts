@@ -78,6 +78,9 @@ export const CURVE_ABI = [
   "function token() view returns (address)",
   "function pair() view returns (address)",
   "event Lock(address indexed token)",
+  "event Sync(address indexed token, uint256 reserveWNative, uint256 reserveToken, uint256 virtualWNative, uint256 virtualToken)",
+  "event Buy(address indexed sender, address indexed token, uint256 amountIn, uint256 amountOut)",
+  "event Sell(address indexed sender, address indexed token, uint256 amountIn, uint256 amountOut)",
   "event Listing(address curve, address token, address pair, uint256 listingWNativeAmount, uint256 listingTokenAmount, uint256 burnLiquidity)",
 ] as const;
 
@@ -103,6 +106,8 @@ export const PAIR_ABI = [
   "function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
   "function token0() view returns (address)",
   "function token1() view returns (address)",
+  "event Sync(uint112 reserve0, uint112 reserve1)",
+  "event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)",
 ] as const;
 
 export const DEX_FACTORY_ABI = ["function getPair(address tokenA, address tokenB) view returns (address)"] as const;

@@ -155,8 +155,8 @@ const Navigation = () => {
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-[background-color,backdrop-filter,border-color] duration-300",
           scrolled
-            ? "border-b border-white/[0.06] bg-black/70 backdrop-blur-xl backdrop-saturate-150"
-            : "border-b border-transparent bg-gradient-to-b from-black/50 to-transparent",
+            ? "border-b border-white/[0.08] bg-white/[0.04] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-white/[0.03]"
+            : "border-b border-transparent bg-transparent",
         )}
       >
         <div className="page-container flex h-[7.2rem] items-center justify-between gap-[1.2rem] sm:h-[8rem]">

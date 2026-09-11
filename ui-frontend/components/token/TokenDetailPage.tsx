@@ -7,17 +7,21 @@ import { ArrowDownLeft, ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-rea
 import TradeInfo from "~~/components/coin/BuyNSell";
 import LifecyclePanel from "~~/components/token/LifecyclePanel";
 import {
-  getMockChartSeries,
   getMockTrades,
   type TokenDetail,
 } from "~~/constants/tokenDetail";
 import { fetchApiToken } from "~~/hooks/useApiTokens";
 import {
+  CHART_TIMEFRAMES,
   derivePhaseFromLifecycle,
   getTokenLifecycle,
   getTokenMarketStats,
+  getTokenPriceSeries,
   readErc20Meta,
+  type ChartTimeframe,
+  type PriceChartPoint,
 } from "~~/lib/reflow/actions";
+import { smoothAreaPath, smoothLinePath } from "~~/lib/chart/smoothPath";
 import { formatCompactMon } from "~~/lib/reflow/format";
 import {
   apiToTokenDetail,
@@ -29,7 +33,7 @@ import { cn } from "~~/lib/utils";
 import { useTokenStore } from "~~/stores/tokenStore";
 import { shortenAddress } from "~~/utils/addressShort";
 
-const TIMEFRAMES = ["5M", "1H", "6H", "1D", "ALL"] as const;
+const TIMEFRAMES = CHART_TIMEFRAMES;
 
 function PhaseChip({ phase }: { phase: string }) {
   const tone: Record<string, string> = {
@@ -192,28 +196,50 @@ function TokenTradePanel({ token }: { token: TokenDetail }) {
   );
 }
 
-function TokenChart({ token }: { token: TokenDetail }) {
-  const [tf, setTf] = useState<(typeof TIMEFRAMES)[number]>("1H");
-  const series = useMemo(() => getMockChartSeries(token.id), [token.id]);
-  const hasSeries = series.length > 1;
+function parsePriceLabel(label?: string): number | undefined {
+  if (!label || label === "—") return undefined;
+  const n = Number(String(label).replace(/ MON$/i, "").trim());
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
 
+function TokenChart({ token }: { token: TokenDetail }) {
+  const [tf, setTf] = useState<ChartTimeframe>("1H");
+  const [series, setSeries] = useState<PriceChartPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const spot = token.priceNative ?? parsePriceLabel(token.priceLabel);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const points = await getTokenPriceSeries(token.id, tf, spot);
+        if (!cancelled) setSeries(points);
+      } catch {
+        if (!cancelled) setSeries([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token.id, spot, tf]);
+
+  const hasSeries = series.length > 1;
   const min = hasSeries ? Math.min(...series.map(p => p.v)) : 0;
   const max = hasSeries ? Math.max(...series.map(p => p.v)) : 1;
   const w = 800;
   const h = 320;
   const pad = 12;
-  const points = hasSeries
-    ? series
-        .map((p, i) => {
-          const x = pad + (i / (series.length - 1)) * (w - pad * 2);
-          const y = pad + (1 - (p.v - min) / (max - min || 1)) * (h - pad * 2);
-          return `${x},${y}`;
-        })
-        .join(" ")
-    : "";
-  const area = hasSeries
-    ? `M ${pad},${h - pad} L ${points.replace(/ /g, " L ")} L ${w - pad},${h - pad} Z`
-    : "";
+  const chartPoints = hasSeries
+    ? series.map((p, i) => ({
+        x: pad + (i / (series.length - 1)) * (w - pad * 2),
+        y: pad + (1 - (p.v - min) / (max - min || 1)) * (h - pad * 2),
+      }))
+    : [];
+  const linePath = hasSeries ? smoothLinePath(chartPoints, 0.5) : "";
+  const areaPath = hasSeries ? smoothAreaPath(chartPoints, h - pad, 0.5) : "";
 
   return (
     <section className="flex h-full flex-col rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
@@ -255,22 +281,24 @@ function TokenChart({ token }: { token: TokenDetail }) {
                 strokeWidth="1"
               />
             ))}
-            <path d={area} fill="rgba(194,255,44,0.1)" />
-            <polyline
-              points={points}
+            <path d={areaPath} fill="rgba(194,255,44,0.1)" />
+            <path
+              d={linePath}
               fill="none"
               stroke="#C2FF2C"
               strokeWidth="2.5"
-              strokeLinejoin="round"
               strokeLinecap="round"
+              strokeLinejoin="round"
             />
           </svg>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-[0.6rem] px-[2rem] text-center">
             <div className="h-[1px] w-[40%] bg-gradient-to-r from-transparent via-accent-500/40 to-transparent" />
-            <p className="text-[1.35rem] text-white/45">Chart feeds in once trades are indexed</p>
+            <p className="text-[1.35rem] text-white/45">
+              {loading ? "Loading chart…" : "Waiting for spot price…"}
+            </p>
             <p className="max-w-[32rem] text-[1.15rem] text-white/25">
-              Spot price and market cap update live from on-chain reserves.
+              Built from on-chain Sync / trade events when available.
             </p>
           </div>
         )}
