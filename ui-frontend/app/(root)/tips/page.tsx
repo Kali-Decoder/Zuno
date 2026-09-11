@@ -6,7 +6,7 @@ import { Clock } from "lucide-react";
 
 const TipsPage = () => {
   return (
-    <div className="px-[var(--container-px)] pb-[4rem]">
+    <div className="page-container pb-[4rem]">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-[4rem]">

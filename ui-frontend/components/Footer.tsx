@@ -16,7 +16,7 @@ const legalLinks = [
 
 function Footer() {
   return (
-    <footer className="px-[var(--container-px)] pb-[3.2rem] pt-[2rem] sm:pb-[4.8rem] sm:pt-[3.2rem]">
+    <footer className="page-container pb-[3.2rem] pt-[2rem] sm:pb-[4.8rem] sm:pt-[3.2rem]">
       <div className="surface-elevated rounded-[2rem] bg-[#161616] px-[2rem] py-[2.4rem] sm:px-[3.2rem] sm:py-[3.2rem]">
         <div className="grid grid-cols-1 gap-[2.4rem] md:grid-cols-2 lg:grid-cols-12 lg:gap-[3.2rem]">
           <div className="lg:col-span-4 space-y-[1.2rem]">

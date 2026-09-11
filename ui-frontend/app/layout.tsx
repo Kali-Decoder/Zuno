@@ -31,7 +31,7 @@ export const metadata = getMetadata({ title: "Reflow", description: "Reflow — 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html suppressHydrationWarning>
-      <body className={`${manrope.variable} ${areaBlack.variable} ${ibmPlexMono.variable}`}>
+      <body className={`${manrope.variable} ${manrope.className} ${areaBlack.variable} ${ibmPlexMono.variable}`}>
         <ThemeProvider enableSystem>
           <Suspense fallback={null}>
             <AppProviders>{children}</AppProviders>
