@@ -1,7 +1,7 @@
 /**
- * Step 01 — Deploy WNative (wrapped native MON)
+ * Step 01 — Deploy WNative (wrapped native USDC)
  *
- * npx hardhat run scripts/01-deploy-wnative.ts --network monadTestnet
+ * npx hardhat run scripts/01-deploy-wnative.ts --network arcTestnet
  */
 import { connect, saveDeployment, logAddresses } from "./lib/deployment.js";
 

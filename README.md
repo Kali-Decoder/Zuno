@@ -39,7 +39,7 @@ flowchart TB
     Tokens["Token documents\n(phase, progress, vault, proposal)"]
   end
 
-  subgraph Chain["Monad Testnet"]
+  subgraph Chain["Arc Testnet"]
     Core["Core"]
     Curve["BondingCurve + Factory"]
     Router["DexRouter"]
@@ -78,7 +78,7 @@ flowchart TD
   I --> J{Inactive window?}
   J -->|yes| K[Vault.markInactive]
   K --> L[Governor.propose]
-  L --> M[vote with MON stake]
+  L --> M[vote with USDC stake]
   M --> N[execute]
   N --> O[Vault.recycleToWinner]
   O --> G
@@ -119,7 +119,7 @@ ui-frontend/
 ├── components/             # Explore, trade sidebar, lifecycle, nav, …
 ├── config/
 │   ├── reflow.ts           # Addresses + ABIs (from deployments JSON)
-│   ├── chains.ts           # Monad Testnet (10143)
+│   ├── chains.ts           # Arc Testnet (5042002)
 │   └── wagmi.ts            # Injected wallet connector
 ├── lib/reflow/
 │   ├── actions.ts          # create / buy / sell / list / vote / quotes / lifecycle
@@ -164,21 +164,21 @@ flowchart LR
 
 | Network | Chain ID | RPC |
 |---------|----------|-----|
-| Monad Testnet | `10143` | `https://testnet-rpc.monad.xyz` (override with `MONAD_RPC_URL` / `NEXT_PUBLIC_RPC_URL`) |
+| Arc Testnet | `5042002` | `https://rpc.testnet.arc.network` (override with `ARC_TESTNET_RPC_URL` / `NEXT_PUBLIC_RPC_URL`) |
 
 Deployed addresses are saved in:
 
-- `implementation/deployments/monadTestnet.json`
-- `ui-frontend/config/deployments/monadTestnet.json`
+- `implementation/deployments/arcTestnet.json`
+- `ui-frontend/config/deployments/arcTestnet.json`
 
 | Contract | Address |
 |----------|---------|
-| Core | `0x002b3C2fe3442bb1Cef409C9dd1830A3E01C03f6` |
-| BondingCurveFactory | `0x54eE35d85740CbB12B5cAB18A179ff6F5C7b28FF` |
-| DexRouter | `0x200bbaD68ECAD4D64ff8B6Aa36C60A7a6d5374E1` |
-| LPRecyclingVault | `0xEc6247Ea7698ACaC1343Db972d3d3484c6555163` |
-| ActivityMonitor | `0x295D9dc3Ba2b47C5a6f6872f1DFf52ab5273609B` |
-| RecyclingGovernor | `0x0B30672ef6e1F89938a9d0cc078F0ce5b5Ace098` |
+| Core | `0xD03883879422b20daEaE68f116771f2f36131Cfe` |
+| BondingCurveFactory | `0x8133D59B8b59C1210cf6B28e7833810aA691A33a` |
+| DexRouter | `0x4Cdf69D2a6D119bEEeD9B692A8aa60313A6415B0` |
+| LPRecyclingVault | `0x8EC409A9197BF4CF1b42462206dCfD9002f3059B` |
+| ActivityMonitor | `0xC78111BACB105433473496c232E6AD9595F80DCC` |
+| RecyclingGovernor | `0xEcA274eb83E2d28cdDaCbE654d62E4B4014cd897` |
 
 ---
 
@@ -188,7 +188,7 @@ Deployed addresses are saved in:
 
 ```bash
 cd implementation
-cp .env.example .env   # set PRIVATE_KEY, optional MONAD_RPC_URL / MONGODB_URI
+cp .env.example .env   # set PRIVATE_KEY, optional ARC_TESTNET_RPC_URL / MONGODB_URI
 npm install
 npx hardhat compile
 
@@ -203,13 +203,13 @@ npm run launch:random
 cd ui-frontend
 cp .env.example .env.local
 # MONGODB_URI, MONGODB_DB=reflow
-# NEXT_PUBLIC_RPC_URL=https://testnet-rpc.monad.xyz
+# NEXT_PUBLIC_RPC_URL=https://rpc.testnet.arc.network
 # optional NEXT_PUBLIC_MON_USD=1  (mcap display)
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Connect an injected wallet on Monad Testnet.
+Open [http://localhost:3000](http://localhost:3000). Connect an injected wallet on Arc Testnet.
 
 ---
 

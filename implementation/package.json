@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "launch:random": "hardhat run scripts/12-launch-random-tokens.ts --network monadTestnet"
+    "launch:random": "hardhat run scripts/12-launch-random-tokens.ts --network arcTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.15",

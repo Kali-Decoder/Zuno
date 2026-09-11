@@ -1,7 +1,7 @@
 /**
  * Step 00 — Print current deployment addresses for this network
  *
- * npx hardhat run scripts/00-print-deployment.ts --network monadTestnet
+ * npx hardhat run scripts/00-print-deployment.ts --network arcTestnet
  */
 import { connect, loadDeployment, logAddresses } from "./lib/deployment.js";
 

@@ -2,7 +2,7 @@
  * Step 02 — Deploy FeeVault
  *
  * Requires: step 01 (wNative)
- * npx hardhat run scripts/02-deploy-fee-vault.ts --network monadTestnet
+ * npx hardhat run scripts/02-deploy-fee-vault.ts --network arcTestnet
  */
 import { connect, loadDeployment, requireAddress, saveDeployment, logAddresses } from "./lib/deployment.js";
 

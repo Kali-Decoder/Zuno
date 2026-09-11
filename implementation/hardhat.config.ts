@@ -2,10 +2,13 @@ import "dotenv/config";
 import hardhatToolboxMochaEthersPlugin from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 import { configVariable, defineConfig } from "hardhat/config";
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY || process.env.MONAD_PRIVATE_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY || process.env.ARC_PRIVATE_KEY;
 const ACCOUNTS = PRIVATE_KEY
   ? [PRIVATE_KEY.startsWith("0x") ? PRIVATE_KEY : `0x${PRIVATE_KEY}`]
-  : [configVariable("MONAD_PRIVATE_KEY")];
+  : [configVariable("PRIVATE_KEY")];
+
+const ARC_TESTNET_RPC =
+  process.env.ARC_TESTNET_RPC_URL || process.env.ARC_RPC_URL || "https://rpc.testnet.arc.network";
 
 export default defineConfig({
   plugins: [hardhatToolboxMochaEthersPlugin],
@@ -20,21 +23,29 @@ export default defineConfig({
       default: {
         version: "0.8.28",
         settings: {
+          evmVersion: "paris",
           optimizer: {
             enabled: true,
             runs: 200,
           },
           viaIR: true,
+          metadata: {
+            bytecodeHash: "ipfs",
+          },
         },
       },
       production: {
         version: "0.8.28",
         settings: {
+          evmVersion: "paris",
           optimizer: {
             enabled: true,
             runs: 200,
           },
           viaIR: true,
+          metadata: {
+            bytecodeHash: "ipfs",
+          },
         },
       },
     },
@@ -48,18 +59,12 @@ export default defineConfig({
       type: "edr-simulated",
       chainType: "op",
     },
-    monadTestnet: {
+    /** Arc Testnet — chainId 5042002, native symbol USDC */
+    arcTestnet: {
       type: "http",
       chainType: "l1",
-      chainId: 10143,
-      url: process.env.MONAD_RPC_URL || "https://testnet-rpc.monad.xyz",
-      accounts: ACCOUNTS,
-    },
-    monadMainnet: {
-      type: "http",
-      chainType: "l1",
-      chainId: 143,
-      url: process.env.MONAD_MAINNET_RPC_URL || "https://rpc.monad.xyz",
+      chainId: 5042002,
+      url: ARC_TESTNET_RPC,
       accounts: ACCOUNTS,
     },
   },

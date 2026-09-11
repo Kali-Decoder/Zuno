@@ -1,67 +1,60 @@
-# Reflow subgraph (The Graph Studio)
+# ZUNO / Reflow subgraph — Arc Testnet
 
-Indexes bonding-curve **Create / Buy / Sell / Listing** and DEX **Swap** on **monad-testnet**.
+Indexes bonding-curve **Create / Buy / Sell / Listing** and DEX **Swap** on **arc-testnet** (chain `5042002`).
 
-## Status
+## Network
 
-- Graph CLI: installed (`graph` 0.98.x)
-- `graph codegen` + `graph build`: ✅ done in this folder
-- Skipped `graph init reflow` — this repo already has the Reflow subgraph (no need to scaffold again)
+| Field | Value |
+|-------|-------|
+| Graph network | `arc-testnet` |
+| Chain ID | `5042002` |
+| Factory | `0x8133D59B8b59C1210cf6B28e7833810aA691A33a` |
+| startBlock | `61615630` |
 
-## Deploy
-
-### Subgraph Studio (blocked on Monad Testnet)
-
-`network: monad-testnet` in `subgraph.yaml` is correct, but **Studio’s registrar does not host Monad Testnet yet** (`services.subgraphs: []` in The Graph networks registry). Deploying to `https://api.studio.thegraph.com/deploy/` fails with:
-
-```text
-network not supported by registrar: no network monad-testnet found on chain ethereum
-```
-
-Studio currently lists **Monad mainnet** (`monad`) only. Do **not** change the network slug to `monad` — that would index the wrong chain.
-
-### Goldsky (recommended for Monad Testnet)
-
-Monad’s docs recommend Goldsky for testnet subgraphs. Same manifest (`network: monad-testnet`):
+## Install Graph CLI
 
 ```bash
-# install once: npm i -g @goldskycom/cli && goldsky login
-cd subgraph
-npm run codegen && npm run build
-goldsky subgraph deploy reflow/1.0.0 --path .
-```
-
-Then set the Goldsky GraphQL URL in `ui-frontend/.env.local`:
-
-```bash
-NEXT_PUBLIC_SUBGRAPH_URL=https://api.goldsky.com/api/public/<PROJECT>/subgraphs/reflow/1.0.0/gn
-SUBGRAPH_URL=...
-```
-
-### Auth note (Graph CLI)
-
-Newer Graph CLI has no `--studio` flag:
-
-```bash
-graph auth <YOUR_DEPLOY_KEY>
-```
-
-## Local build
-
-```bash
-cd subgraph
+# from subgraph/
 npm install
+# or globally:
+# npm install -g @graphprotocol/graph-cli
+```
+
+This repo already has the subgraph scaffold — **do not** run `graph init` again.
+
+## Authenticate & deploy (Studio)
+
+1. Create/open subgraph **`reflow`** in [Subgraph Studio](https://thegraph.com/studio/) with network **Arc Testnet**.
+2. Copy the deploy key, then:
+
+```bash
+cd subgraph
+graph auth <YOUR_DEPLOY_KEY>
 npm run codegen
 npm run build
+npm run deploy
+# or: npm run deploy:test
 ```
 
-## After deploy
+Newer Graph CLI has no `--studio` flag — just `graph auth <KEY>`.
 
-Set the Studio query URL in the app:
+## Query URL
+
+After deploy, Studio shows a query URL like:
+
+```text
+https://api.studio.thegraph.com/query/<ID>/reflow/version/latest
+```
+
+Put it in `ui-frontend/.env.local`:
 
 ```bash
-# ui-frontend/.env.local
-NEXT_PUBLIC_SUBGRAPH_URL=https://api.studio.thegraph.com/query/<ID>/reflow/<VERSION>
+NEXT_PUBLIC_SUBGRAPH_URL=https://api.studio.thegraph.com/query/<ID>/reflow/version/latest
+SUBGRAPH_URL=https://api.studio.thegraph.com/query/<ID>/reflow/version/latest
 ```
 
-Charts/trades already work via the Mongo indexer; the Studio URL can replace RPC fallback later.
+Test:
+
+```bash
+npm run test:query
+```
