@@ -37,11 +37,30 @@ export const useTokenStore = create<TokenState>(set => ({
   error: null,
   refetch: null,
 
-  setTokenAddress: address => set({ tokenAddress: address ?? zeroAddress }),
+  setTokenAddress: address =>
+    set(state => {
+      const next = address ?? zeroAddress;
+      return state.tokenAddress === next ? state : { tokenAddress: next };
+    }),
 
-  setUserAddress: address => set({ userAddress: address ?? zeroAddress }),
+  setUserAddress: address =>
+    set(state => {
+      const next = address ?? zeroAddress;
+      return state.userAddress === next ? state : { userAddress: next };
+    }),
 
-  setMetadata: metadata => set({ metadata }),
+  setMetadata: metadata =>
+    set(state => {
+      if (
+        state.metadata?.tokenAddress === metadata?.tokenAddress &&
+        state.metadata?.symbol === metadata?.symbol &&
+        state.metadata?.name === metadata?.name &&
+        state.metadata?.image === metadata?.image
+      ) {
+        return state;
+      }
+      return { metadata };
+    }),
 
   setSubgraphData: data => set({ subgraphData: data }),
 
