@@ -16,7 +16,7 @@ import { cn } from "~~/lib/utils";
 
 const STEPS = [
   { id: 1, label: "Details", hint: "Name & symbol" },
-  { id: 2, label: "Media", hint: "Image & links" },
+  { id: 2, label: "Media", hint: "Token image" },
   { id: 3, label: "Curve", hint: "Seed buy" },
   { id: 4, label: "Launch", hint: "Review" },
 ] as const;
@@ -30,25 +30,18 @@ const PRESET_IMAGES = [
   { src: "/zuno-logo.png", label: "ZUNO" },
 ];
 
+/** Fields required by Core.createCurve (+ seed amountIn/fee). */
 type FormState = {
   name: string;
   symbol: string;
-  description: string;
   imageUrl: string;
-  twitter: string;
-  telegram: string;
-  website: string;
   seedBuy: string;
 };
 
 const INITIAL: FormState = {
   name: "",
   symbol: "",
-  description: "",
   imageUrl: PRESET_IMAGES[0].src,
-  twitter: "",
-  telegram: "",
-  website: "",
   seedBuy: "1",
 };
 
@@ -132,7 +125,6 @@ export default function Launchpad() {
               symbol: result.symbol,
               curve: result.curve,
               imageUrl: form.imageUrl,
-              description: form.description,
               creator: wallet.account,
               tokenURI: form.imageUrl,
               graduated: false,
@@ -263,7 +255,7 @@ export default function Launchpad() {
 
           {step === 1 && (
             <div className="grid gap-[1.6rem] sm:grid-cols-2">
-              <Field label="Token name" hint="At least 2 characters">
+              <Field label="Token name" hint="Passed to createCurve — at least 2 characters">
                 <input
                   className={inputClass}
                   placeholder="e.g. ZUNO Frog"
@@ -271,7 +263,7 @@ export default function Launchpad() {
                   onChange={e => update("name", e.target.value)}
                 />
               </Field>
-              <Field label="Symbol" hint="Ticker, uppercase preferred">
+              <Field label="Symbol" hint="On-chain ticker">
                 <input
                   className={inputClass}
                   placeholder="e.g. FROG"
@@ -280,22 +272,12 @@ export default function Launchpad() {
                   onChange={e => update("symbol", e.target.value.toUpperCase())}
                 />
               </Field>
-              <div className="sm:col-span-2">
-                <Field label="Description">
-                  <textarea
-                    className={cn(inputClass, "min-h-[12rem] resize-y")}
-                    placeholder="What is this token about?"
-                    value={form.description}
-                    onChange={e => update("description", e.target.value)}
-                  />
-                </Field>
-              </div>
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-[2rem]">
-              <Field label="Token image">
+              <Field label="Token image" hint="Stored on-chain as tokenURI">
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-[0.8rem]">
                   {PRESET_IMAGES.map(img => {
                     const selected = form.imageUrl === img.src;
@@ -315,33 +297,17 @@ export default function Launchpad() {
                   })}
                 </div>
               </Field>
-              <div className="rounded-sm border border-dashed border-white/15 bg-black/20 px-[1.6rem] py-[2rem] flex flex-col items-center gap-[0.8rem] text-white/50">
-                <Upload className="size-[2rem]" />
-                <p className="text-[1.2rem]">Pick a preset image or paste an image URL</p>
-              </div>
-              <div className="grid gap-[1.6rem] sm:grid-cols-3">
-                <Field label="Twitter / X">
+              <div className="rounded-sm border border-dashed border-white/15 bg-black/20 px-[1.6rem] py-[1.6rem] space-y-[1.2rem]">
+                <div className="flex flex-col items-center gap-[0.8rem] text-white/50">
+                  <Upload className="size-[2rem]" />
+                  <p className="text-[1.2rem]">Pick a preset or paste an image URL</p>
+                </div>
+                <Field label="Image URL">
                   <input
                     className={inputClass}
-                    placeholder="@handle"
-                    value={form.twitter}
-                    onChange={e => update("twitter", e.target.value)}
-                  />
-                </Field>
-                <Field label="Telegram">
-                  <input
-                    className={inputClass}
-                    placeholder="t.me/..."
-                    value={form.telegram}
-                    onChange={e => update("telegram", e.target.value)}
-                  />
-                </Field>
-                <Field label="Website">
-                  <input
-                    className={inputClass}
-                    placeholder="https://"
-                    value={form.website}
-                    onChange={e => update("website", e.target.value)}
+                    placeholder="https://… or ipfs://…"
+                    value={form.imageUrl}
+                    onChange={e => update("imageUrl", e.target.value)}
                   />
                 </Field>
               </div>
@@ -403,10 +369,10 @@ export default function Launchpad() {
                     {form.name || "Unnamed"}{" "}
                     <span className="text-accent-500">${form.symbol || "???"}</span>
                   </h2>
-                  <p className="text-white/60 text-[1.2rem] max-w-[40rem]">
-                    {form.description || "No description provided."}
-                  </p>
                   <p className="font-mono text-[1.2rem] text-white/80">Seed buy: {form.seedBuy || "0"} USDC</p>
+                  <p className="font-mono text-[1.1rem] text-white/45 break-all line-clamp-2">
+                    tokenURI: {form.imageUrl || "—"}
+                  </p>
                 </div>
               </div>
               <ul className="space-y-[0.8rem] text-[1.2rem] text-white/65">
@@ -479,8 +445,8 @@ export default function Launchpad() {
               <p className="text-[2rem] font-bold leading-tight">{form.name || "Token name"}</p>
               <p className="text-accent-500 font-mono text-[1.4rem]">${form.symbol || "TICKER"}</p>
             </div>
-            <p className="text-[1.2rem] text-white/50 line-clamp-4">
-              {form.description || "Description will show here as you type."}
+            <p className="text-[1.2rem] text-white/50">
+              Seed: {form.seedBuy || "0"} USDC
             </p>
           </div>
 
