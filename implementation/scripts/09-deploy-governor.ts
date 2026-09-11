@@ -1,7 +1,7 @@
 /**
  * Step 09 — Deploy RecyclingGovernor
  *
- * npx hardhat run scripts/09-deploy-governor.ts --network monadTestnet
+ * npx hardhat run scripts/09-deploy-governor.ts --network arcTestnet
  */
 import { connect, saveDeployment, logAddresses } from "./lib/deployment.js";
 

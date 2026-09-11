@@ -1,7 +1,7 @@
 /**
  * Step 08 — Deploy ActivityMonitor
  *
- * npx hardhat run scripts/08-deploy-activity-monitor.ts --network monadTestnet
+ * npx hardhat run scripts/08-deploy-activity-monitor.ts --network arcTestnet
  */
 import { connect, saveDeployment, logAddresses } from "./lib/deployment.js";
 

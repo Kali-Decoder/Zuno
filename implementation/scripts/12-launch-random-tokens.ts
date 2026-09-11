@@ -5,11 +5,11 @@
  *   PRIVATE_KEY          — deployer/signer
  *   MONGODB_URI          — Atlas / local Mongo connection string
  *   MONGODB_DB           — database name (default: reflow)
- *   LAUNCH_COUNT         — how many tokens (default: 15)
- *   SEED_BUY_MON         — optional fixed seed buy in MON (default: random 0–0.05)
+ *   LAUNCH_COUNT         — how many tokens (default: number of public/coins images)
+ *   SEED_BUY_USDC        — optional fixed seed buy in USDC (default: random 0–0.05)
  *
  * Usage:
- *   npx hardhat run scripts/12-launch-random-tokens.ts --network monadTestnet
+ *   npx hardhat run scripts/12-launch-random-tokens.ts --network arcTestnet
  */
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
@@ -20,7 +20,6 @@ import { connect, loadDeployment, requireAddress } from "./lib/deployment.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const COUNT = Math.max(1, Number(process.env.LAUNCH_COUNT || 15));
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const MONGODB_DB = process.env.MONGODB_DB || "reflow";
 
@@ -70,14 +69,16 @@ const NOUNS = [
   "Voxel",
 ];
 
+/** Coin art from ui-frontend/public/coins */
 const IMAGES = [
-  "/gmonad.jpeg",
-  "/diamondHands.png",
-  "/coins/Chamaleon.png",
-  "/coins/SunPixel.png",
-  "/coins/AQ.png",
-  "/cultdemo.png",
+  "/coins/token1.webp",
+  "/coins/token2.jpeg",
+  "/coins/token3.png",
+  "/coins/token4.jpeg",
+  "/coins/token5.avif",
 ];
+
+const COUNT = Math.max(1, Number(process.env.LAUNCH_COUNT || IMAGES.length));
 
 const CORE_ABI = [
   "function createCurve(address creator, string name, string symbol, string tokenURI, uint256 amountIn, uint256 fee) payable returns (address curve, address token, uint256 virtualNative, uint256 virtualToken, uint256 amountOut)",
@@ -110,8 +111,9 @@ function randomTokenMeta(i: number) {
     .replace(/[^a-zA-Z]/g, "")
     .slice(0, 6)
     .toUpperCase();
-  const imageUrl = pick(IMAGES);
-  const description = `${name} — random Reflow bonding-curve launch #${i + 1}`;
+  // Cycle through public coin images so each launch uses the artwork set
+  const imageUrl = IMAGES[i % IMAGES.length]!;
+  const description = `${name} — ZUNO bonding-curve launch #${i + 1}`;
   return { name, symbol, imageUrl, description };
 }
 
@@ -175,7 +177,7 @@ async function upsertMongo(doc: {
       $setOnInsert: {
         createdAt: new Date(),
         decimals: 18,
-        chainId: 10143,
+        chainId: 5042002,
       },
     },
     { upsert: true },
@@ -220,18 +222,18 @@ async function main() {
 
   for (let i = 0; i < COUNT; i++) {
     const meta = randomTokenMeta(i);
-    const fixedSeed = process.env.SEED_BUY_MON;
+    const fixedSeed = process.env.SEED_BUY_USDC;
     const seedMon =
       fixedSeed != null && fixedSeed !== ""
         ? fixedSeed
-        : (Math.random() * 0.05).toFixed(4); // 0–0.05 MON
+        : (Math.random() * 0.05).toFixed(4); // 0–0.05 USDC
     const amountIn = Number(seedMon) > 0 ? ethers.parseEther(seedMon) : 0n;
     let fee = calcFee(amountIn, feeDen, feeNum);
     if (amountIn > 0n && fee === 0n) fee = 1n;
     const value = amountIn + fee + deployFee;
 
     process.stdout.write(
-      `[${i + 1}/${COUNT}] ${meta.name} ($${meta.symbol}) seed=${seedMon} MON … `,
+      `[${i + 1}/${COUNT}] ${meta.name} ($${meta.symbol}) seed=${seedMon} USDC … `,
     );
 
     try {
@@ -239,7 +241,7 @@ async function main() {
         deployer.address,
         meta.name,
         meta.symbol,
-        meta.imageUrl || "ipfs://reflow",
+        meta.imageUrl || "ipfs://zuno",
         amountIn,
         fee,
         { value, gasLimit: 5_000_000n },
@@ -303,7 +305,7 @@ async function main() {
       console.log(`FAIL ${message.slice(0, 120)}`);
     }
 
-    // Pace txs — Monad / wallet RPC friendliness
+    // Pace txs — Arc / wallet RPC friendliness
     if (i < COUNT - 1) await sleep(2500);
   }
 

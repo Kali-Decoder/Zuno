@@ -1,7 +1,7 @@
 /**
  * Step 03 — Deploy Uniswap V2 Factory (DEX)
  *
- * npx hardhat run scripts/03-deploy-dex-factory.ts --network monadTestnet
+ * npx hardhat run scripts/03-deploy-dex-factory.ts --network arcTestnet
  */
 import { connect, saveDeployment, logAddresses } from "./lib/deployment.js";
 

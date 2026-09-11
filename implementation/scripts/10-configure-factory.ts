@@ -2,7 +2,7 @@
  * Step 10 — Configure BondingCurveFactory + set LP vault
  *
  * Requires: steps 03, 05, 07 (dexFactory, bondingCurveFactory, lpVault)
- * npx hardhat run scripts/10-configure-factory.ts --network monadTestnet
+ * npx hardhat run scripts/10-configure-factory.ts --network arcTestnet
  */
 import { connect, loadDeployment, requireAddress, saveDeployment, logAddresses } from "./lib/deployment.js";
 

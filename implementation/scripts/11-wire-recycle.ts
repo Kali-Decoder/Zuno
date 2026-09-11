@@ -2,7 +2,7 @@
  * Step 11 — Wire recycle modules + DexRouter activity monitor
  *
  * Requires: steps 05–09 (bondingCurveFactory, dexRouter, lpVault, activityMonitor, governor)
- * npx hardhat run scripts/11-wire-recycle.ts --network monadTestnet
+ * npx hardhat run scripts/11-wire-recycle.ts --network arcTestnet
  */
 import { connect, loadDeployment, requireAddress, saveDeployment, logAddresses } from "./lib/deployment.js";
 

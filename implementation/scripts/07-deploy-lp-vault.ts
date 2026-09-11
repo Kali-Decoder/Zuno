@@ -2,7 +2,7 @@
  * Step 07 — Deploy LPRecyclingVault
  *
  * Requires: step 01 (wNative)
- * npx hardhat run scripts/07-deploy-lp-vault.ts --network monadTestnet
+ * npx hardhat run scripts/07-deploy-lp-vault.ts --network arcTestnet
  */
 import { connect, loadDeployment, requireAddress, saveDeployment, logAddresses } from "./lib/deployment.js";
 

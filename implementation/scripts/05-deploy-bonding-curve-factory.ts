@@ -2,7 +2,7 @@
  * Step 05 — Deploy BondingCurveFactory + initialize Core
  *
  * Requires: steps 01, 04 (wNative, core)
- * npx hardhat run scripts/05-deploy-bonding-curve-factory.ts --network monadTestnet
+ * npx hardhat run scripts/05-deploy-bonding-curve-factory.ts --network arcTestnet
  */
 import { connect, loadDeployment, requireAddress, saveDeployment, logAddresses } from "./lib/deployment.js";
 

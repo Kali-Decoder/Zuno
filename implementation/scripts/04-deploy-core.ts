@@ -2,7 +2,7 @@
  * Step 04 — Deploy Core
  *
  * Requires: steps 01–02 (wNative, feeVault)
- * npx hardhat run scripts/04-deploy-core.ts --network monadTestnet
+ * npx hardhat run scripts/04-deploy-core.ts --network arcTestnet
  */
 import { connect, loadDeployment, requireAddress, saveDeployment, logAddresses } from "./lib/deployment.js";
 

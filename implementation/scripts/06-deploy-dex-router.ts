@@ -2,7 +2,7 @@
  * Step 06 — Deploy DexRouter (post-listing trading)
  *
  * Requires: steps 01–03 (wNative, feeVault, dexFactory)
- * npx hardhat run scripts/06-deploy-dex-router.ts --network monadTestnet
+ * npx hardhat run scripts/06-deploy-dex-router.ts --network arcTestnet
  *
  * Fee: 1% (denominator=1, numerator=100)
  */
