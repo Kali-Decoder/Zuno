@@ -1,6 +1,6 @@
 import React from "react";
-import Image from "next/image";
-import { formatEther, formatUnits } from "viem";
+import { formatUnits } from "viem";
+import { formatToken } from "~~/lib/reflow/format";
 import { useTokenStore } from "~~/stores/tokenStore";
 import { TokenMetadata, TradeOptions } from "~~/types/types";
 
@@ -13,7 +13,7 @@ interface TradeInfoCardProps {
   decimals?: number;
   metadata: TokenMetadata | null;
   onAmountChange: (value: string) => void;
-  onMaxClick?: (value: string) => void;
+  onMaxClick?: () => void;
 }
 
 function TradeInfoCard({
@@ -22,98 +22,81 @@ function TradeInfoCard({
   ethBalance,
   tokenBalance,
   mode,
-  decimals,
+  decimals = 18,
+  metadata: metadataProp,
   onAmountChange,
   onMaxClick,
 }: TradeInfoCardProps) {
-  const { metadata, isLoading, error } = useTokenStore();
+  const storeMeta = useTokenStore(s => s.metadata);
+  const isLoading = useTokenStore(s => s.isLoading);
+  const error = useTokenStore(s => s.error);
+  const metadata = metadataProp ?? storeMeta;
+  const isBuy = mode === TradeOptions.BUY;
 
   if (isLoading || !metadata) {
     return (
-      <div className="border border-1 border-gray-800 bg-white-4 rounded-2xl py-3 px-4 animate-pulse">
-        <div className="flex justify-between">
-          <div className="h-7 w-32 bg-gray-300 rounded"></div>
-          <div className="h-7 w-24 bg-gray-300 rounded"></div>
-        </div>
-        <div className="flex justify-between mt-2">
-          <div className="h-5 w-20 bg-gray-300 rounded"></div>
-          <div className="h-5 w-40 bg-gray-300 rounded"></div>
-        </div>
+      <div className="animate-pulse rounded-[1.2rem] border border-white/[0.06] bg-white/[0.03] px-[1.2rem] py-[1.4rem]">
+        <div className="h-8 w-32 rounded bg-white/10" />
+        <div className="mt-3 h-4 w-24 rounded bg-white/10" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="border border-1 border-gray-800 bg-white-4 rounded-2xl py-3 px-4">
-        <div className="text-error-500">Error: {error.message}</div>
+      <div className="rounded-[1.2rem] border border-red-500/20 bg-red-500/5 px-[1.2rem] py-[1.2rem] text-[1.2rem] text-red-300">
+        {error.message}
       </div>
     );
   }
 
-  const formattedUsdValue = (Number(amount || 0) * Number(0)).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  }); //tokenData.price
+  const displayBalance = isBuy
+    ? ethBalance != null
+      ? Number(formatUnits(ethBalance, 18)).toFixed(4)
+      : "0.00"
+    : tokenBalance != null
+      ? Number(formatUnits(tokenBalance, decimals)).toFixed(4)
+      : "0.00";
 
-  const handleMaxClick = () => {
-    if (onMaxClick) {
-      if (mode === "buy" && ethBalance) {
-        onMaxClick(formatUnits(ethBalance, 18));
-      } else if (mode === "sell" && tokenBalance) {
-        onMaxClick(formatUnits(tokenBalance, decimals || 18));
-      }
-    }
-  };
-
-  // Display balance based on mode with ETH showing 2 decimal places
-  const displayBalance =
-    mode === "buy"
-      ? ethBalance
-        ? Number(formatUnits(ethBalance, 18)).toFixed(2)
-        : "0.00"
-      : tokenBalance
-        ? Number(formatUnits(tokenBalance, 18)).toFixed(2) // Use nullish coalescing
-        : "0.00";
-
-  // Display symbol based on mode
-  const displaySymbol = mode === "buy" ? "TMON" : metadata.symbol;
-
-  console.log(tokenQuote);
+  const inputSymbol = isBuy ? "MON" : metadata.symbol;
+  const receiveSymbol = isBuy ? metadata.symbol : "MON";
+  const receiveAmount = formatToken(tokenQuote ?? 0n, decimals, 4);
 
   return (
-    <div className="border border-white/5 bg-white/5 rounded-md p-[0.8rem] md:py-[1.2rem] md:px-[1.6rem] grid grid-rows-[repeat(2,auto)] gap-y-[1rem] md:gap-y-[1.6rem]">
-      <div className="grid grid-cols-2 items-start justify-between">
+    <div className="rounded-[1.2rem] border border-white/[0.06] bg-white/[0.03] p-[1.2rem] sm:p-[1.4rem]">
+      <div className="flex items-start justify-between gap-[1rem]">
         <input
           type="text"
+          inputMode="decimal"
           value={amount}
           onChange={e => onAmountChange(e.target.value)}
           placeholder="0.0"
-          className="bg-transparent border-b border-white/20 text-[1.2rem]  md:text-[2rem] text-white outline-none outline "
+          className="w-full bg-transparent text-[2.4rem] font-medium tracking-tight text-white outline-none placeholder:text-white/20"
         />
-        <div className="text-[0.6rem] md:text-[1.2rem] font-bold uppercase flex items-center gap-[0.8rem] rounded-full bg-white/5 py-[4px] px-[1.2rem] leading-tight w-fit justify-self-end">
-          <span>{displaySymbol}</span>
-        </div>
+        <span className="mt-[0.4rem] shrink-0 rounded-full bg-white/[0.06] px-[1rem] py-[0.4rem] text-[1.15rem] font-medium text-white/70">
+          {inputSymbol}
+        </span>
       </div>
-      <div className="flex justify-between text-white/60 uppercase text-[0.8rem] md:text-[1.4rem]">
-        <p>{formattedUsdValue}</p>
-        <div className="flex items-center gap-[0.8rem]">
-          <p>
-            {displayBalance} {displaySymbol}
-          </p>
-          <button onClick={handleMaxClick} className="text-accent-500 transition-colors cursor-pointer">
+
+      <div className="mt-[1rem] flex items-center justify-between text-[1.15rem] text-white/40">
+        <p>
+          Receive{" "}
+          <span className="font-medium text-white/80">
+            {receiveAmount} {receiveSymbol}
+          </span>
+        </p>
+        <div className="flex items-center gap-[0.6rem]">
+          <span className="tabular-nums">
+            {displayBalance} {inputSymbol}
+          </span>
+          <button
+            type="button"
+            onClick={() => onMaxClick?.()}
+            className="font-medium text-accent-500 transition-opacity hover:opacity-80"
+          >
             MAX
           </button>
         </div>
-      </div>
-      <div className="flex w-full">
-        <p className="text-[0.8rem] md:text-[1.2rem] text-white/80">
-          Receives:{" "}
-          <span className="font-bold">
-            Receive: {Number(formatUnits(tokenQuote ? tokenQuote[0] : 0, decimals || 18)).toFixed(2)}{" "}
-            {mode === "buy" ? metadata.symbol : "ETH"}
-          </span>
-        </p>
       </div>
     </div>
   );

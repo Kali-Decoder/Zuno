@@ -5,7 +5,7 @@ import Link from "next/link";
 import ErrorMsg from "../common/ErrorMsg";
 import { Spinner } from "../common/Spinner";
 import AirdropButton from "./ClaimButton";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAccount } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchAirdrop } from "~~/graphql/graphQlClient2";
 import { useTokenStore } from "~~/stores/tokenStore";
@@ -27,7 +27,8 @@ function AirdropSection() {
   };
 
   const airdropAddress = getAirdropAddress(tokenAddress);
-  const { user, authenticated } = usePrivy();
+  const { address, isConnected: authenticated } = useAccount();
+  const user = address ? { wallet: { address } } : null;
   const queryClient = useQueryClient();
   const [claimed, setClaimed] = useState(false);
 

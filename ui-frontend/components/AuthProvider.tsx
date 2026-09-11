@@ -1,63 +1,49 @@
 "use client";
 
 import React, { createContext, useContext, useMemo } from "react";
-import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useChainId } from "wagmi";
 import { monadTestnet } from "~~/config/chains";
-import { isPrivyConfigured } from "~~/lib/privy";
 
 type AuthContextType = {
   isNewUser: boolean;
-  user: any;
+  /** Connected wallet address, or null */
+  user: { wallet?: { address?: string } } | null;
+  address: `0x${string}` | undefined;
   ready: boolean;
   isLoading: boolean;
+  isConnected: boolean;
   isValidChain: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function AuthInner({ children, ready, user }: { children: React.ReactNode; ready: boolean; user: any }) {
-  const { isConnected } = useAccount();
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
 
+  const ready = status !== "connecting" && status !== "reconnecting";
   const isValidChain = useMemo(() => {
-    if (!isConnected && !user?.wallet?.address) return true;
+    if (!isConnected) return true;
     return chainId === monadTestnet.id;
-  }, [chainId, isConnected, user?.wallet?.address]);
+  }, [chainId, isConnected]);
+
+  const user = address ? { wallet: { address } } : null;
 
   return (
     <AuthContext.Provider
       value={{
         isNewUser: false,
         user,
+        address,
         ready,
         isLoading: !ready,
+        isConnected: Boolean(isConnected && address),
         isValidChain,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
-
-function AuthWithPrivy({ children }: { children: React.ReactNode }) {
-  const { ready, user } = usePrivy();
-  return (
-    <AuthInner ready={ready} user={user}>
-      {children}
-    </AuthInner>
-  );
-}
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  if (!isPrivyConfigured) {
-    return (
-      <AuthInner ready={true} user={null}>
-        {children}
-      </AuthInner>
-    );
-  }
-  return <AuthWithPrivy>{children}</AuthWithPrivy>;
 };
 
 export const useAuth = () => {

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import AirdropClaimDialog from "./AirdropClaimDialog";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTrigger } from "~~/components/common/Dialog";
 import HoverButton from "~~/components/common/HoverButton";
@@ -24,7 +24,8 @@ const EligibilityDialog = ({
   disabled?: boolean;
 }) => {
   const { setTokenAddress, setMetadata } = useTokenStore();
-  const { user, authenticated } = usePrivy();
+  const { address, isConnected: authenticated } = useAccount();
+  const user = address ? { wallet: { address } } : null;
   const [isFirstDialogOpen, setIsFirstDialogOpen] = useState(false);
   const [isSecondDialogOpen, setIsSecondDialogOpen] = useState(false);
 

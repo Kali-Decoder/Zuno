@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import ConnectWalletButton from "../common/ConnectWalletButton";
 import HoverButton from "../common/HoverButton";
 import { Spinner } from "../common/Spinner";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAccount } from "wagmi";
 import { getMerkleProof } from "~~/hooks/api-hooks";
 import { useTransactor } from "~~/hooks/useMockTx";
 
@@ -15,7 +15,7 @@ interface AirdropButtonProps {
 }
 
 export default function AirdropButton({ airdropAddress, tokenAddress, onSuccess }: AirdropButtonProps) {
-  const { user } = usePrivy();
+  const { address } = useAccount();
   const [isLoading, setIsLoading] = useState(false);
   const [hasClaimed, setHasClaimed] = useState(false);
   const [canClaim, setCanClaim] = useState(true);
@@ -23,20 +23,21 @@ export default function AirdropButton({ airdropAddress, tokenAddress, onSuccess 
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user?.wallet?.address || !tokenAddress || !airdropAddress) return;
+      if (!address || !tokenAddress || !airdropAddress) return;
       try {
-        await getMerkleProof(user.wallet.address, tokenAddress);
+        await getMerkleProof(address, tokenAddress);
         setCanClaim(true);
         setHasClaimed(false);
       } catch (err) {
         console.error("Error fetching merkle or claim status", err);
+        setCanClaim(false);
       }
     };
-    fetchData();
-  }, [user?.wallet?.address, tokenAddress, airdropAddress]);
+    void fetchData();
+  }, [address, tokenAddress, airdropAddress]);
 
   const handleClaim = async () => {
-    if (!airdropAddress || !user?.wallet?.address) return;
+    if (!airdropAddress || !address) return;
     try {
       setIsLoading(true);
       await writeTx();
@@ -50,7 +51,7 @@ export default function AirdropButton({ airdropAddress, tokenAddress, onSuccess 
     }
   };
 
-  if (!user?.wallet?.address) {
+  if (!address) {
     return (
       <ConnectWalletButton className="h-auto w-full rounded-sm px-[1.6rem] py-[1.2rem] text-[1.4rem] hover:bg-accent-600">
         Connect to claim
