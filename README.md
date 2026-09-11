@@ -1,6 +1,6 @@
 # Reflow
 
-Liquidity-recycling launchpad on **Monad**.
+Liquidity-recycling launchpad on **Arc**.
 
 Projects launch on a bonding curve, graduate to Uniswap V2 with **locked LP** (not burned), and if a pool goes inactive the community votes to recycle that liquidity into an active project.
 
