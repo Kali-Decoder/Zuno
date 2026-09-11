@@ -59,7 +59,7 @@ const WelcomeBanner: React.FC = () => {
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
                 <p className="text-white font-medium text-sm">
-                  Welcome to <span className="text-accent-500">Reflow</span>
+                  Welcome to <span className="text-accent-500">ZUNO</span>
                 </p>
                 <p className="text-white/60 text-xs sm:text-sm">Take our quick tour to get started</p>
               </div>

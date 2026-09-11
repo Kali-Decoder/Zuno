@@ -6,7 +6,7 @@ import CopyAddressToClipboard from "../common/CopyAddressToClipboard";
 import { useAuth } from "../AuthProvider";
 import { ChevronDown, Unplug, UserRound } from "lucide-react";
 import { useAccount, useBalance, useDisconnect, useSwitchChain } from "wagmi";
-import { monadTestnet } from "~~/config/chains";
+import { arcTestnet } from "~~/config/chains";
 
 function WalletButtonInner() {
   const { isValidChain } = useAuth();
@@ -14,14 +14,14 @@ function WalletButtonInner() {
   const { disconnectAsync } = useDisconnect();
   const { data: balance } = useBalance({
     address,
-    chainId: monadTestnet.id,
+    chainId: arcTestnet.id,
     query: { enabled: !!address },
   });
   const { switchChainAsync } = useSwitchChain();
 
   const truncated = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "No wallet";
-  const monadBalance = balance ? `${parseFloat(balance.formatted).toFixed(2)} ${balance.symbol}` : "--";
-  const networkName = isValidChain ? "Monad Testnet" : "Wrong network";
+  const nativeBalance = balance ? `${parseFloat(balance.formatted).toFixed(2)} ${balance.symbol}` : "--";
+  const networkName = isValidChain ? "Arc Testnet" : "Wrong network";
 
   if (!isConnected || !address) {
     return <ConnectWalletButton />;
@@ -70,10 +70,10 @@ function WalletButtonInner() {
             </div>
             <div className="flex items-center justify-between font-sans text-[1.25rem]">
               <span className="text-white/70">Balance</span>
-              <span className="font-semibold text-white">{monadBalance}</span>
+              <span className="font-semibold text-white">{nativeBalance}</span>
             </div>
             {!isValidChain && (
-              <p className="mt-2 font-sans text-[1.15rem] text-red-400">Switch to Monad Testnet to trade.</p>
+              <p className="mt-2 font-sans text-[1.15rem] text-red-400">Switch to Arc Testnet to trade.</p>
             )}
           </div>
 
@@ -81,11 +81,11 @@ function WalletButtonInner() {
             {!isValidChain && (
               <button
                 type="button"
-                onClick={() => void switchChainAsync({ chainId: monadTestnet.id })}
+                onClick={() => void switchChainAsync({ chainId: arcTestnet.id })}
                 className="group w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-[1rem] py-[0.85rem] text-white/70 transition-all duration-200 hover:border-accent-500/40 hover:bg-white/[0.05] hover:text-accent-500"
               >
                 <div className="flex items-center justify-center gap-[0.6rem] font-sans text-[1.3rem] font-medium">
-                  Switch to Monad
+                  Switch to Arc
                 </div>
               </button>
             )}

@@ -10,6 +10,8 @@ interface TokenState {
   isLoading: boolean;
   error: Error | null; // Type the error if needed
   refetch: (() => void) | null; // Store the refetch function
+  /** Bumped after trades so chart / trades / hero can reload without remounting. */
+  dataEpoch: number;
 
   setTokenAddress: (address: `0x${string}` | undefined) => void;
   setUserAddress: (address: `0x${string}` | undefined) => void;
@@ -25,6 +27,7 @@ interface TokenState {
   setLoading: (loading: boolean) => void;
   setError: (error: any) => void; // Or setError: (error: Error | null) => void
   setRefetch: (refetchFn: () => void) => void;
+  bumpDataEpoch: () => void;
 }
 
 export const useTokenStore = create<TokenState>(set => ({
@@ -36,6 +39,7 @@ export const useTokenStore = create<TokenState>(set => ({
   isLoading: false,
   error: null,
   refetch: null,
+  dataEpoch: 0,
 
   setTokenAddress: address =>
     set(state => {
@@ -69,6 +73,8 @@ export const useTokenStore = create<TokenState>(set => ({
   setError: error => set({ error }),
 
   setRefetch: refetchFn => set({ refetch: refetchFn }),
+
+  bumpDataEpoch: () => set(state => ({ dataEpoch: state.dataEpoch + 1 })),
 
   setStateFromSubgraph(accountAddress, tokenAddress, metadata, subgraphData, refetchFn) {
     set(state => ({

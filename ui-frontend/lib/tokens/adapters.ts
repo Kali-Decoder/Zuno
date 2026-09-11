@@ -6,7 +6,7 @@ import type { TokenMarketStats } from "~~/lib/reflow/actions";
 import { formatCompactUsd } from "~~/lib/reflow/format";
 import type { CultToken } from "~~/types/types";
 
-const EXPLORER = "https://testnet.monadvision.com";
+const EXPLORER = "https://testnet.arcscan.app";
 
 function asAddr(value?: string): `0x${string}` {
   const v = (value || "0x0000000000000000000000000000000000000000").toLowerCase();
@@ -76,7 +76,7 @@ export function apiToExploreToken(t: ApiToken): ExploreToken {
     id: asAddr(t.address),
     name: t.name,
     symbol: t.symbol,
-    imageUrl: t.imageUrl || "/gmonad.jpeg",
+    imageUrl: t.imageUrl || "/zuno-logo.png",
     marketCapLabel: formatUsd(t.marketCapUsd),
     progress: Math.min(100, Math.max(0, t.progress ?? 0)),
     timeAgo: timeAgo(t.createdAt),
@@ -92,7 +92,7 @@ export function apiToGraduatedToken(t: ApiToken): GraduatedToken {
     id: asAddr(t.address),
     name: t.name,
     symbol: t.symbol,
-    imageUrl: t.imageUrl || "/gmonad.jpeg",
+    imageUrl: t.imageUrl || "/zuno-logo.png",
     marketCapLabel: formatUsd(t.marketCapUsd),
     timeAgo: timeAgo(t.createdAt),
     showV2: true,
@@ -111,7 +111,7 @@ export function apiToCultToken(t: ApiToken): CultToken {
     isWatchlisted: false,
     marketCap: t.marketCapUsd ?? 0,
     blockTimestamp: t.createdAt || new Date().toISOString(),
-    imageUrl: t.imageUrl || "/gmonad.jpeg",
+    imageUrl: t.imageUrl || "/zuno-logo.png",
     description: t.description || "",
     bondingCurvePercentage: t.progress,
     volume: t.volumeUsd,
@@ -125,8 +125,8 @@ export function apiToTokenDetail(t: ApiToken): TokenDetail {
     id: addr,
     name: t.name,
     symbol: t.symbol,
-    imageUrl: t.imageUrl || "/gmonad.jpeg",
-    description: t.description || "Reflow bonding-curve token on Monad Testnet.",
+    imageUrl: t.imageUrl || "/zuno-logo.png",
+    description: t.description || "ZUNO bonding-curve token on Arc Testnet.",
     marketCapLabel: formatUsd(t.marketCapUsd),
     liquidityLabel: graduated ? "DEX" : "Bonding",
     volume24hLabel: formatUsd(t.volumeUsd),

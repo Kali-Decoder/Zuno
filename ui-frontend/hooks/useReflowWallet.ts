@@ -11,7 +11,7 @@ import {
   useDisconnect,
   useSwitchChain,
 } from "wagmi";
-import { monadTestnet } from "~~/config/chains";
+import { arcTestnet } from "~~/config/chains";
 import { ZERO } from "~~/lib/reflow/format";
 import { getFreshPublicProvider } from "~~/lib/reflow/provider";
 
@@ -40,8 +40,8 @@ export function useReflowWallet() {
   const [nativeBalance, setNativeBalance] = useState(ZERO);
 
   const account = (address || "") as string;
-  const isCorrectNetwork = chainId === monadTestnet.id;
-  const explorerBase = monadTestnet.blockExplorers?.default.url ?? "https://testnet.monadvision.com";
+  const isCorrectNetwork = chainId === arcTestnet.id;
+  const explorerBase = arcTestnet.blockExplorers?.default.url ?? "https://testnet.arcscan.app";
   const ready = status !== "connecting" && status !== "reconnecting";
 
   const refreshBalance = useCallback(
@@ -68,13 +68,13 @@ export function useReflowWallet() {
     }
     reset();
     try {
-      await connectAsync({ connector, chainId: monadTestnet.id });
+      await connectAsync({ connector, chainId: arcTestnet.id });
     } catch (err) {
       if (shouldRetryConnect(err)) {
         try {
           await disconnectAsync().catch(() => undefined);
           reset();
-          await connectAsync({ connector, chainId: monadTestnet.id });
+          await connectAsync({ connector, chainId: arcTestnet.id });
           return;
         } catch (retryErr) {
           toast.error(retryErr instanceof Error ? retryErr.message : "Failed to connect");
@@ -85,13 +85,16 @@ export function useReflowWallet() {
     }
   }, [connectors, connectAsync, disconnectAsync, reset]);
 
-  const switchToMonad = useCallback(async () => {
+  const switchToArc = useCallback(async () => {
     try {
-      await switchChainAsync({ chainId: monadTestnet.id });
+      await switchChainAsync({ chainId: arcTestnet.id });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Network switch failed.");
     }
   }, [switchChainAsync]);
+
+  /** @deprecated Use switchToArc */
+  const switchToMonad = switchToArc;
 
   const getProvider = useCallback(async () => {
     const ethereum = (globalThis as { ethereum?: ethers.Eip1193Provider }).ethereum;
@@ -111,8 +114,8 @@ export function useReflowWallet() {
         return false;
       }
       if (!isCorrectNetwork) {
-        toast.error(`Switch to ${monadTestnet.name}.`);
-        await switchToMonad();
+        toast.error(`Switch to ${arcTestnet.name}.`);
+        await switchToArc();
         return false;
       }
 
@@ -135,7 +138,7 @@ export function useReflowWallet() {
       getProvider,
       refreshBalance,
       connectWallet,
-      switchToMonad,
+      switchToArc,
     ],
   );
 
@@ -158,6 +161,7 @@ export function useReflowWallet() {
     isSubmitting,
     explorerBase,
     connectWallet,
+    switchToArc,
     switchToMonad,
     getProvider,
     runWrite,

@@ -6,10 +6,10 @@ export const tourSteps: Step[] = [
     content: (
       <div>
         <h3 className="text-[2rem] font-semibold text-white mb-[1rem] leading-tight">
-          Welcome to <span className="text-accent-500">Reflow</span>!
+          Welcome to <span className="text-accent-500">ZUNO</span>!
         </h3>
         <p className="text-[1.45rem] text-white/80 mb-[1.2rem] leading-relaxed">
-          Reflow rewards diamond hands holders with exclusive early access to new tokens. Let's show you how everything
+          ZUNO rewards diamond hands holders with exclusive early access to new tokens. Let&apos;s show you how everything
           works!
         </p>
         <div className="flex items-center gap-[0.5rem] text-[1.3rem] text-white/60">
@@ -172,7 +172,7 @@ export const tourSteps: Step[] = [
           <h3 className="text-[2rem] font-semibold text-white mb-[0.5rem] leading-tight">You're All Set!</h3>
         </div>
         <p className="text-[1.45rem] text-white/80 mb-[1.2rem] leading-relaxed text-center">
-          Now you understand how Reflow works:
+          Now you understand how ZUNO works:
         </p>
         <div className="space-y-[0.75rem] mb-[1.5rem]">
           <div className="flex items-center gap-[0.75rem]">

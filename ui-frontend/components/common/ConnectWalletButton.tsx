@@ -10,7 +10,7 @@ import {
   useSwitchChain,
 } from "wagmi";
 import toast from "react-hot-toast";
-import { monadTestnet } from "~~/config/chains";
+import { arcTestnet } from "~~/config/chains";
 import { cn } from "~~/lib/utils";
 
 export type ConnectWalletButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -69,7 +69,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
     status === "connecting" ||
     status === "reconnecting";
 
-  const wrongNetwork = isConnected && chainId !== monadTestnet.id;
+  const wrongNetwork = isConnected && chainId !== arcTestnet.id;
 
   const connectWallet = async () => {
     if (!connector) {
@@ -80,14 +80,14 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
     setBusyLocal(true);
     reset();
     try {
-      await connectAsync({ connector, chainId: monadTestnet.id });
+      await connectAsync({ connector, chainId: arcTestnet.id });
       toast.success("Wallet connected");
     } catch (err) {
       if (shouldRetryConnect(err)) {
         try {
           await disconnectAsync().catch(() => undefined);
           reset();
-          await connectAsync({ connector, chainId: monadTestnet.id });
+          await connectAsync({ connector, chainId: arcTestnet.id });
           toast.success("Wallet connected");
           return;
         } catch (retryErr) {
@@ -107,7 +107,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
     if (busy) return;
 
     if (wrongNetwork) {
-      void switchChainAsync({ chainId: monadTestnet.id }).catch(err => {
+      void switchChainAsync({ chainId: arcTestnet.id }).catch(err => {
         toast.error(err instanceof Error ? err.message : "Network switch failed");
       });
       onClick?.(e);
@@ -133,7 +133,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
           <Spinner className="h-[1.3rem] w-[1.3rem] text-black" />
         </>
       ) : (
-        <span>{wrongNetwork ? "Switch to Monad" : labelFromChildren(children)}</span>
+        <span>{wrongNetwork ? "Switch to Arc" : labelFromChildren(children)}</span>
       )}
     </button>
   );

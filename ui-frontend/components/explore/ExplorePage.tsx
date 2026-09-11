@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ExploreTokenCard from "./ExploreTokenCard";
 import GraduatedSection from "./GraduatedSection";
+import { ZunoLoader } from "~~/components/common/ZunoLoader";
 import type { ExploreToken } from "~~/constants/exploreTokens";
 import { useApiTokens } from "~~/hooks/useApiTokens";
 import { getCurveProgress } from "~~/lib/reflow/actions";
@@ -69,12 +70,11 @@ function pageList(current: number, total: number) {
 }
 
 export default function ExplorePage() {
-  const { tokens: apiTokens, loading, reload } = useApiTokens({ graduated: false });
+  const { tokens: apiTokens, loading, reload, syncing } = useApiTokens({ graduated: false });
   const [enriched, setEnriched] = useState<ExploreToken[]>([]);
   const [sort, setSort] = useState<SortId>("recent");
   const [window, setWindow] = useState<WindowId>("all");
   const [page, setPage] = useState(1);
-  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,19 +134,18 @@ export default function ExplorePage() {
               </span>
             </div>
             <p className="max-w-[48rem] text-[1.25rem] text-white/45 sm:text-[1.35rem]">
-              Tokens climbing toward graduation on Monad Testnet.
-              {loading ? " Syncing…" : ""}
+              Tokens climbing toward graduation on Arc Testnet.
+              {loading ? " Loading…" : syncing ? " Syncing…" : ""}
             </p>
             <button
               type="button"
               disabled={loading || syncing}
               onClick={() => {
-                setSyncing(true);
-                void reload().finally(() => setSyncing(false));
+                void reload({ forceSync: true });
               }}
               className="w-fit rounded-full bg-white/5 px-[1.2rem] py-[0.55rem] text-[1.15rem] text-white/55 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"
             >
-              {syncing || loading ? "Syncing from chain…" : "Sync from chain"}
+              {syncing ? "Syncing from chain…" : "Sync from chain"}
             </button>
           </div>
 
@@ -198,8 +197,12 @@ export default function ExplorePage() {
         </div>
 
         {pageTokens.length === 0 && (
-          <div className="rounded-[1.4rem] bg-[#161616] px-[2rem] py-[6rem] text-center text-white/40">
-            {loading ? "Loading tokens…" : "No bonding tokens yet. Launch one from Launch."}
+          <div className="grid place-content-center rounded-[1.4rem] bg-[#161616] px-[2rem] py-[6rem]">
+            {loading ? (
+              <ZunoLoader size="md" label="Loading tokens…" />
+            ) : (
+              <p className="text-center text-white/40">No bonding tokens yet. Launch one from Launch.</p>
+            )}
           </div>
         )}
 

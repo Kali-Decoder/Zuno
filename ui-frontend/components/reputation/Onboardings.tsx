@@ -6,7 +6,7 @@ import { useRouter } from "next-nprogress-bar";
 
 const ONBOARDINGS = [
   {
-    text: "With reputation alone, you can stand out and win. Hold tokens to grow your reputation score: the longer you hold and support the price action, the higher your score climbs. Show your loyalty to the Reflow, and let your on-chain actions speak for you",
+    text: "With reputation alone, you can stand out and win. Hold tokens to grow your reputation score: the longer you hold and support the price action, the higher your score climbs. Show your loyalty to ZUNO, and let your on-chain actions speak for you",
     sprite: "sprite-coin",
     imgPos: "right",
   },

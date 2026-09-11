@@ -185,7 +185,7 @@ const TokensTab = () => {
             <span className="text-[1rem] text-white/60">{voting.length} proposals</span>
           </div>
           <div className="mb-[2rem] rounded-lg border border-accent-500/20 bg-accent-500/10 p-[1.5rem]">
-            <p className="mb-[0.5rem] font-medium text-accent-500">Stake MON to vote</p>
+            <p className="mb-[0.5rem] font-medium text-accent-500">Stake USDC to vote</p>
             <p className="text-[0.9rem] text-white/80">
               Vote which listed token receives recycled liquidity, then execute when the proposal succeeds.
             </p>

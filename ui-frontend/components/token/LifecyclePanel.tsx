@@ -41,7 +41,7 @@ const PHASE_COPY: Record<string, { title: string; body: string }> = {
   },
   voting: {
     title: "Recycling vote",
-    body: "Operator may stake MON to vote which listed token receives the recycled liquidity.",
+    body: "Operator may stake USDC to vote which listed token receives the recycled liquidity.",
   },
   recycling: {
     title: "Recycling",
@@ -202,12 +202,12 @@ export default function LifecyclePanel({
       <div className="mb-[1.4rem] grid grid-cols-2 gap-[0.8rem] sm:grid-cols-4">
         <Meta label="Curve" value={life.curve ? shortenAddress(life.curve) : "—"} />
         <Meta
-          label={life.pair ? "Pair" : "Curve MON"}
+          label={life.pair ? "Pair" : "Curve USDC"}
           value={
             life.pair
               ? shortenAddress(life.pair)
               : life.reserveNative && life.reserveNative !== "0"
-                ? `${Number(Number(life.reserveNative) / 1e18).toFixed(2)} MON`
+                ? `${Number(Number(life.reserveNative) / 1e18).toFixed(2)} USDC`
                 : "—"
           }
         />
@@ -341,7 +341,7 @@ export default function LifecyclePanel({
                   ))}
                 </div>
                 <label className="block text-[1.15rem] text-white/45">
-                  Stake (MON)
+                  Stake (USDC)
                   <input
                     value={stake}
                     onChange={e => setStake(e.target.value)}

@@ -13,7 +13,7 @@ const UpcomingToken = ({
   imageUrl = "/gmonad.jpeg",
   href,
   subtitle = "Upcoming",
-  description = "Reflow lifecycle token on Monad Testnet.",
+  description = "ZUNO lifecycle token on Arc Testnet.",
 }: {
   className?: string;
   name?: string;

@@ -26,9 +26,9 @@ export const formatToken = (value: bigint, decimals = 18, digits = 4) => {
   }
 };
 
-/** MON → USD multiplier (testnet default 1). Override with NEXT_PUBLIC_MON_USD. */
+/** Native USDC → USD multiplier (default 1). Override with NEXT_PUBLIC_USDC_USD. */
 export const monUsdPrice = () => {
-  const n = Number(process.env.NEXT_PUBLIC_MON_USD || "1");
+  const n = Number(process.env.NEXT_PUBLIC_USDC_USD || process.env.NEXT_PUBLIC_MON_USD || "1");
   return Number.isFinite(n) && n > 0 ? n : 1;
 };
 
@@ -44,20 +44,20 @@ export const formatCompactUsd = (n?: number) => {
 
 export const formatCompactMon = (n?: number) => {
   if (n == null || !Number.isFinite(n) || n <= 0) return "—";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M MON`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}k MON`;
-  if (n >= 1) return `${n.toFixed(2)} MON`;
-  if (n >= 0.0001) return `${n.toFixed(4)} MON`;
-  return `${n.toExponential(2)} MON`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M USDC`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}k USDC`;
+  if (n >= 1) return `${n.toFixed(2)} USDC`;
+  if (n >= 0.0001) return `${n.toFixed(4)} USDC`;
+  return `${n.toExponential(2)} USDC`;
 };
 
 export const formatTokenPrice = (monPerToken?: number) => {
   if (monPerToken == null || !Number.isFinite(monPerToken) || monPerToken <= 0) return "—";
-  if (monPerToken >= 1) return `${monPerToken.toFixed(4)} MON`;
-  if (monPerToken >= 0.0001) return `${monPerToken.toFixed(6)} MON`;
+  if (monPerToken >= 1) return `${monPerToken.toFixed(4)} USDC`;
+  if (monPerToken >= 0.0001) return `${monPerToken.toFixed(6)} USDC`;
   // Prefer fixed decimals over scientific for UI polish
   const fixed = monPerToken.toFixed(12).replace(/\.?0+$/, "");
-  return `${fixed} MON`;
+  return `${fixed} USDC`;
 };
 
 export const txError = (error: unknown) => {

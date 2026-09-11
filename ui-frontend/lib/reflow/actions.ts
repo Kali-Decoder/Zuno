@@ -55,7 +55,7 @@ export async function createTokenCurve(params: {
     REFLOW.core,
     CORE_ABI,
     "createCurve",
-    [params.creator, params.name, params.symbol, params.tokenURI || "ipfs://reflow", amountIn, fee],
+    [params.creator, params.name, params.symbol, params.tokenURI || "ipfs://zuno", amountIn, fee],
     { value },
   );
 
@@ -349,7 +349,7 @@ async function getTradeFeeParts(isGraduated: boolean): Promise<{ den: bigint; nu
   }
 }
 
-/** Max MON amountIn that still leaves room for protocol fee + small gas buffer. */
+/** Max USDC amountIn that still leaves room for protocol fee + small gas buffer. */
 export async function maxBuyAmountIn(nativeBalance: bigint, isGraduated: boolean): Promise<bigint> {
   if (nativeBalance <= ZERO) return ZERO;
   const { den, num } = await getTradeFeeParts(isGraduated);
@@ -586,13 +586,17 @@ export type ChainToken = {
   owner?: string;
 };
 
+/** Arc Testnet ZUNO deploy start — used to bound eth_getLogs. */
+export const ARC_DEPLOY_START_BLOCK = 61615630;
+
 export async function loadCreateEvents(): Promise<ChainToken[]> {
   if (!isSetAddress(REFLOW.bondingCurveFactory)) return [];
   try {
     const provider = getFreshPublicProvider();
     const factory = new ethers.Contract(REFLOW.bondingCurveFactory, FACTORY_ABI, provider);
     const latest = await provider.getBlockNumber();
-    const from = Math.max(0, latest - 50_000);
+    // Arc factory deployed at 61615630 — never scan pre-deploy history.
+    const from = Math.max(ARC_DEPLOY_START_BLOCK, latest - 8_000);
     const events = await factory.queryFilter(factory.filters.Create(), from, latest);
     return events
       .map(ev => {
@@ -621,7 +625,7 @@ export async function loadCreateEvents(): Promise<ChainToken[]> {
 async function queryRange() {
   const provider = getFreshPublicProvider();
   const latest = await provider.getBlockNumber();
-  const from = Math.max(0, latest - 50_000);
+  const from = Math.max(ARC_DEPLOY_START_BLOCK, latest - 8_000);
   return { provider, from, latest };
 }
 
@@ -962,7 +966,7 @@ const TF_SECONDS: Record<ChartTimeframe, number> = {
   ALL: 90 * 24 * 60 * 60,
 };
 
-/** ~1s blocks on Monad; clamp lookback for RPC limits. */
+/** Clamp lookback for RPC limits. */
 function blocksForTimeframe(tf: ChartTimeframe) {
   const secs = TF_SECONDS[tf];
   return Math.min(50_000, Math.max(400, Math.ceil(secs * 1.25)));
@@ -1013,7 +1017,7 @@ function synthesizePriceSeries(
 }
 
 /**
- * Price series (MON per token) from curve Sync / Buy / Sell and pair Sync.
+ * Price series (USDC per token) from curve Sync / Buy / Sell and pair Sync.
  * Falls back to a synthetic series anchored on the live spot when history is empty.
  */
 export async function getTokenPriceSeries(

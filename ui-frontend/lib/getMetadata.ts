@@ -8,7 +8,7 @@ const titleTemplate = "%s";
 export const getMetadata = ({
   title,
   description,
-  imageRelativePath = "/thumbnail.jpg",
+  imageRelativePath = "/zuno-logo.png",
 }: {
   title: string;
   description: string;

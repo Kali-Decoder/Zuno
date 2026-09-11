@@ -1,5 +1,5 @@
 /**
- * Reflow Studio subgraph client.
+ * ZUNO subgraph client.
  * Prefers NEXT_PUBLIC_SUBGRAPH_URL (browser) or SUBGRAPH_URL (server).
  */
 
@@ -172,9 +172,10 @@ export async function fetchSubgraphCandles(
     ? `{ token: $token, openTime_gte: $since }`
     : `{ token: $token }`;
 
-  const data = await querySubgraph<{ candle1ms: SubgraphCandle[] }>(
+  // The Graph pluralizes Candle1m → candle1Ms (capital M)
+  const data = await querySubgraph<{ candle1Ms: SubgraphCandle[] }>(
     `query Candles($token: String!, $first: Int!${since ? ", $since: BigInt!" : ""}) {
-      candle1ms(
+      candle1Ms(
         first: $first
         orderBy: openTime
         orderDirection: asc
@@ -189,7 +190,7 @@ export async function fetchSubgraphCandles(
       ...(since ? { since: String(since) } : {}),
     },
   );
-  return data?.candle1ms ?? [];
+  return data?.candle1Ms ?? [];
 }
 
 /** Convert subgraph 1m candles into a UI price series for a timeframe. */
@@ -221,19 +222,50 @@ export async function fetchSubgraphChartSeries(
   return series;
 }
 
+/** Default token total supply on Arc (1e27 wei = 1e9 tokens @ 18 decimals). */
+const DEFAULT_SUPPLY_TOKENS = 1_000_000_000;
+
+function asHexAddress(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const s = String(value).toLowerCase();
+  return s.startsWith("0x") ? s : `0x${s}`;
+}
+
+function resolveImageUrl(tokenURI?: string | null): string {
+  const uri = (tokenURI || "").trim();
+  if (!uri) return "/zuno-logo.png";
+  if (uri.startsWith("/") || uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("data:")) {
+    return uri;
+  }
+  if (uri.startsWith("ipfs://")) {
+    return `https://ipfs.io/ipfs/${uri.slice("ipfs://".length)}`;
+  }
+  return uri;
+}
+
+function usdcUsd(): number {
+  const n = Number(process.env.NEXT_PUBLIC_USDC_USD || process.env.NEXT_PUBLIC_MON_USD || "1");
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
 /** Map subgraph token → ApiToken-shaped object for list UIs. */
 export function subgraphTokenToApi(t: SubgraphToken) {
   const price = Number(t.lastPriceNative);
   const volumeNative = Number(t.volumeNative);
+  const marketCapUsd =
+    Number.isFinite(price) && price > 0 ? price * DEFAULT_SUPPLY_TOKENS * usdcUsd() : undefined;
+  // Native asset on Arc is USDC ≈ USD
+  const volumeUsd = Number.isFinite(volumeNative) ? volumeNative * usdcUsd() : 0;
+
   return {
     address: t.id,
     name: t.name,
     symbol: t.symbol,
-    curve: t.curve || undefined,
-    pair: t.pair || undefined,
-    creator: t.creator || undefined,
+    curve: asHexAddress(t.curve),
+    pair: asHexAddress(t.pair),
+    creator: asHexAddress(t.creator),
     tokenURI: t.tokenURI || undefined,
-    imageUrl: "/gmonad.jpeg",
+    imageUrl: resolveImageUrl(t.tokenURI),
     graduated: t.graduated,
     isListing: t.graduated,
     curveLocked: t.graduated,
@@ -242,7 +274,8 @@ export function subgraphTokenToApi(t: SubgraphToken) {
     vaultStatus: t.graduated ? "Locked" : "None",
     inactive: false,
     recyclingEligible: false,
-    volumeUsd: Number.isFinite(volumeNative) ? volumeNative : 0,
+    volumeUsd,
+    marketCapUsd,
     createdAt: t.createdAt ? new Date(Number(t.createdAt) * 1000).toISOString() : undefined,
     listedAt: t.listedAt ? new Date(Number(t.listedAt) * 1000).toISOString() : undefined,
     lastBuyAt: t.lastTradeAt ? new Date(Number(t.lastTradeAt) * 1000).toISOString() : undefined,

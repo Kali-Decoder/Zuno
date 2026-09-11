@@ -204,6 +204,51 @@ html {
 }
 
 /* Animation for the highlighted row in leaderboard */
+@keyframes zuno-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+}
+
+@keyframes zuno-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes zuno-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-zuno-pulse {
+  animation: zuno-pulse 1.15s ease-in-out infinite;
+}
+
+.animate-zuno-glow {
+  animation: zuno-glow 1.4s ease-in-out infinite;
+}
+
+.animate-zuno-spin {
+  animation: zuno-spin 1.1s linear infinite;
+}
+
 @keyframes pulse-subtle {
   0% {
     background-color: rgba(172, 255, 47, 0.1);

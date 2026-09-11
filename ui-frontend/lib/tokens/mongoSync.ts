@@ -87,7 +87,7 @@ export async function syncChainToMongo() {
           inactive: false,
           recyclingEligible: false,
           progress: 0,
-          chainId: 10143,
+          chainId: 5042002,
           decimals: 18,
         },
         $set: {
@@ -130,7 +130,7 @@ export async function syncChainToMongo() {
           name: "Token",
           symbol: "TKN",
           imageUrl: "/gmonad.jpeg",
-          chainId: 10143,
+          chainId: 5042002,
           decimals: 18,
         },
       },
@@ -240,12 +240,13 @@ export async function syncChainToMongo() {
     executed += 1;
   }
 
-  // Refresh bonding/locked progress for recent non-listed tokens (cap RPC)
+  // Refresh bonding/locked progress for recent Arc tokens only (cap RPC)
   const bonding = await TokenModel.find({
+    chainId: 5042002,
     $or: [{ graduated: false }, { phase: { $in: ["bonding", "locked"] } }],
   })
     .sort({ updatedAt: -1 })
-    .limit(40)
+    .limit(20)
     .lean();
 
   let progressed = 0;
@@ -279,7 +280,7 @@ export async function syncChainToMongo() {
 
   let trades = { tradeEvents: 0, tokensIndexed: 0, latest: 0 };
   try {
-    trades = await syncTradesToMongo({ limit: 30, lookbackBlocks: 20_000 });
+    trades = await syncTradesToMongo({ limit: 20, lookbackBlocks: 4_000 });
   } catch {
     /* trade index optional — token sync still succeeds */
   }

@@ -147,7 +147,7 @@ const TokenSchema = new Schema<TokenDoc>(
     name: { type: String, required: true },
     symbol: { type: String, required: true },
     decimals: { type: Number, default: 18 },
-    chainId: { type: Number, default: 10143, index: true },
+    chainId: { type: Number, default: 5042002, index: true },
     curve: { type: String, default: "", lowercase: true },
     pair: { type: String, default: "", lowercase: true },
     imageUrl: { type: String, default: "/gmonad.jpeg" },

@@ -1,24 +1,25 @@
 import type { Chain } from "viem";
 
-export const monadTestnet: Chain = {
-  id: 10143,
-  name: "Monad Testnet",
+/** Arc Testnet — native gas token is USDC (18 decimals for msg.value / eth_getBalance). */
+export const arcTestnet: Chain = {
+  id: 5042002,
+  name: "Arc Testnet",
   nativeCurrency: {
     decimals: 18,
-    name: "MON",
-    symbol: "MON",
+    name: "USDC",
+    symbol: "USDC",
   },
   rpcUrls: {
-    default: { http: ["https://testnet-rpc.monad.xyz"] },
-    public: { http: ["https://testnet-rpc.monad.xyz"] },
+    default: { http: ["https://rpc.testnet.arc.network"] },
+    public: { http: ["https://rpc.testnet.arc.network"] },
   },
   blockExplorers: {
     default: {
-      name: "Monad Explorer",
-      url: "https://testnet.monadvision.com",
+      name: "ArcScan",
+      url: "https://testnet.arcscan.app",
     },
   },
   testnet: true,
 };
 
-export const MONAD_CHAIN_ID = monadTestnet.id;
+export const ARC_CHAIN_ID = arcTestnet.id;

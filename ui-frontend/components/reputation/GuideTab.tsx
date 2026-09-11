@@ -57,7 +57,7 @@ const LIFECYCLE = [
     id: "recycle",
     title: "Recycle",
     icon: Recycle,
-    body: "If a pool goes inactive, the community proposes candidates, stakes MON to vote, and executes — dead LP moves to a healthier listed token.",
+    body: "If a pool goes inactive, the community proposes candidates, stakes USDC to vote, and executes — dead LP moves to a healthier listed token.",
     href: "/tokens",
     cta: "Inactive & votes",
   },
@@ -66,7 +66,7 @@ const LIFECYCLE = [
 const HOW_TO = [
   {
     step: "01",
-    title: "Connect on Monad Testnet",
+    title: "Connect on Arc Testnet",
     body: "Use the Connect button in the nav. Injected wallets (MetaMask and similar) are supported.",
     icon: Wallet,
   },
@@ -91,15 +91,15 @@ const HOW_TO = [
   {
     step: "05",
     title: "Govern recycling",
-    body: "Mark inactive pools, propose candidates, vote with MON stake, then execute the winning recycle.",
+    body: "Mark inactive pools, propose candidates, vote with USDC stake, then execute the winning recycle.",
     icon: Vote,
   },
 ] as const;
 
 const FAQ = [
   {
-    q: "What makes Reflow different?",
-    a: "Most launchpads burn LP forever. Reflow locks graduated LP in a vault so inactive liquidity can be recycled into active projects by community vote.",
+    q: "What makes ZUNO different?",
+    a: "Most launchpads burn LP forever. ZUNO locks graduated LP in a vault so inactive liquidity can be recycled into active projects by community vote.",
   },
   {
     q: "When can I launch a pool?",
@@ -107,11 +107,11 @@ const FAQ = [
   },
   {
     q: "How does voting work?",
-    a: "Propose a recycling-eligible (inactive) token with locked listed candidates. Voters stake MON (min ~0.01) for weight. After the voting period, execute moves LP to the winner.",
+    a: "Propose a recycling-eligible (inactive) token with locked listed candidates. Voters stake USDC (min ~0.01) for weight. After the voting period, execute moves LP to the winner.",
   },
   {
     q: "Which network?",
-    a: "Monad Testnet (chain id 10143). Switch networks from the wallet menu if you see Wrong network.",
+    a: "Arc Testnet (chain id 5042002). Switch networks from the wallet menu if you see Wrong network.",
   },
 ] as const;
 
@@ -145,10 +145,10 @@ export default function GuideTab() {
         <div className="relative max-w-[64rem] space-y-[1.6rem]">
           <p className="font-mono text-[1.15rem] uppercase tracking-[0.16em] text-accent-500">Platform guide</p>
           <h1 className="text-[3.2rem] font-bold leading-[1.05] text-white sm:text-[4.4rem]">
-            Liquidity that <span className="text-accent-500">reflows</span>
+            Where liquidity finds its <span className="text-accent-500">next home</span>
           </h1>
           <p className="max-w-[48rem] text-[1.4rem] leading-relaxed text-white/55 sm:text-[1.55rem]">
-            Reflow is a bonding-curve launchpad on Monad. Tokens graduate to Uniswap V2 with locked LP. When a pool goes
+            ZUNO is a bonding-curve launchpad on Arc. Tokens graduate to Uniswap V2 with locked LP. When a pool goes
             quiet, the community can recycle that liquidity into projects that are still alive.
           </p>
           <div className="flex flex-wrap gap-[0.6rem] pt-[0.4rem]">
@@ -218,7 +218,7 @@ export default function GuideTab() {
       {/* How to use */}
       <section className="mb-[2.4rem] grid grid-cols-1 gap-[1.6rem] lg:grid-cols-12">
         <div className="surface-elevated rounded-[1.6rem] bg-[#141414] p-[1.6rem] sm:p-[2.4rem] lg:col-span-7">
-          <h2 className="mb-[0.6rem] text-[2.4rem] font-bold text-white">How to use Reflow</h2>
+          <h2 className="mb-[0.6rem] text-[2.4rem] font-bold text-white">How to use ZUNO</h2>
           <p className="mb-[2rem] text-[1.3rem] text-white/45">Follow the product path end to end on testnet.</p>
 
           <ol className="space-y-[1rem]">
@@ -256,7 +256,7 @@ export default function GuideTab() {
                 "LP stays locked after graduation — never sent to burn by default.",
                 "ActivityMonitor flags pools that fall below volume / tx thresholds.",
                 "Candidates must be vault-locked listed tokens (healthy pools).",
-                "Vote weight = MON staked; execute after the voting window succeeds.",
+                "Vote weight = USDC staked; execute after the voting window succeeds.",
               ].map(line => (
                 <li key={line} className="flex gap-[0.8rem] text-[1.25rem] text-white/60">
                   <Check className="mt-[0.25rem] size-[1.4rem] shrink-0 text-accent-500" />
@@ -296,7 +296,7 @@ export default function GuideTab() {
 
       {/* CTA */}
       <section className="surface-elevated rounded-[1.6rem] bg-[#141414] p-[2rem] text-center sm:p-[3.2rem]">
-        <h2 className="mb-[0.8rem] text-[2.4rem] font-bold text-white sm:text-[2.8rem]">Ready to reflow?</h2>
+        <h2 className="mb-[0.8rem] text-[2.4rem] font-bold text-white sm:text-[2.8rem]">Ready for ZUNO?</h2>
         <p className="mx-auto mb-[2rem] max-w-[42rem] text-[1.35rem] text-white/45">
           Launch on the curve, graduate to a vault-locked pool, and keep dead liquidity in motion.
         </p>

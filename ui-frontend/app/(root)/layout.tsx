@@ -5,7 +5,10 @@ import Navigation from "~~/components/reputation/Navigation";
 import "~~/styles/globals.css";
 import { getMetadata } from "~~/lib/getMetadata";
 
-export const metadata = getMetadata({ title: "Reflow", description: "Reflow — liquidity recycling launchpad" });
+export const metadata = getMetadata({
+  title: "ZUNO.FUN",
+  description: "ZUNO.FUN — Where liquidity finds its next home.",
+});
 
 const RootShell = ({ children }: { children: React.ReactNode }) => {
   return (

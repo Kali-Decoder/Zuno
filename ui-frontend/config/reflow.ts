@@ -1,4 +1,4 @@
-import deployed from "./deployments/monadTestnet.json";
+import deployed from "./deployments/arcTestnet.json";
 
 const env = (key: string, fallback: string) => {
   const value = process.env[key];

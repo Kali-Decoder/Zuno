@@ -1,60 +1,76 @@
+"use client";
+
 import React from "react";
+import Image from "next/image";
 import { cn } from "~~/lib/utils";
 
-/** Reflow mark — recycling loop (liquidity that flows back) */
-export const LogoMark = ({ className }: { className?: string }) => (
-  <svg
-    width="32"
-    height="32"
-    viewBox="0 0 32 32"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={cn("shrink-0", className)}
-    aria-hidden
-  >
-    <rect width="32" height="32" rx="9" fill="#C2FF2C" />
-    {/* Outer recirculating arcs */}
-    <path
-      d="M9.5 18.2C10.2 21.1 12.8 23.2 16 23.2C19.6 23.2 22.5 20.6 23.2 17.2"
-      stroke="#0A0A0A"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    />
-    <path
-      d="M22.5 13.8C21.8 10.9 19.2 8.8 16 8.8C12.4 8.8 9.5 11.4 8.8 14.8"
-      stroke="#0A0A0A"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    />
-    {/* Flow arrows */}
-    <path d="M21.2 15.2L23.4 17.4L25.2 14.8" stroke="#0A0A0A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M10.8 16.8L8.6 14.6L6.8 17.2" stroke="#0A0A0A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
+export const ZUNO_LOGO_SRC = "/zuno-logo.png";
+/** Arc Testnet / native USDC mark used on swap panels */
+export const ARC_CHAIN_LOGO_SRC = "/arc-chain.jpg";
+
+/**
+ * ZUNO mark — brand PNG only (no glow / gradient).
+ */
+export const LogoMark = ({
+  className,
+  alt = "",
+  priority = false,
+}: {
+  className?: string;
+  alt?: string;
+  priority?: boolean;
+}) => (
+  <Image
+    src={ZUNO_LOGO_SRC}
+    alt={alt}
+    width={48}
+    height={48}
+    priority={priority}
+    className={cn("shrink-0 object-contain", className)}
+  />
 );
 
-/** Reflow wordmark — interactive brand lockup */
-export const LogoLightTextSvg = ({ className }: { className?: string }) => {
-  return (
-    <span
-      className={cn(
-        "group/logo inline-flex items-center gap-[0.85rem] select-none leading-none",
-        className,
-      )}
-      aria-label="Reflow"
-    >
-      <span className="relative grid place-content-center transition-transform duration-300 ease-out group-hover/logo:rotate-[-8deg] group-hover/logo:scale-105">
-        <LogoMark className="size-[2.4rem] sm:size-[2.8rem]" />
-        <span className="pointer-events-none absolute inset-0 rounded-[0.9rem] bg-accent-500/0 blur-md transition-all duration-300 group-hover/logo:bg-accent-500/35" />
+/**
+ * Interactive ZUNO.FUN lockup for nav / hero.
+ * Mark sized to wordmark cap-height; hover tilts mark + brightens .FUN.
+ */
+export const LogoLightTextSvg = ({ className }: { className?: string }) => (
+  <span
+    className={cn(
+      "group/logo inline-flex items-center gap-[0.5rem] select-none leading-none sm:gap-[0.6rem]",
+      className,
+    )}
+    aria-label="ZUNO.FUN"
+  >
+    <span className="relative grid size-[1.9rem] place-content-center overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-transform group-hover/logo:-rotate-[14deg] group-hover/logo:scale-110 group-active/logo:scale-90 sm:size-[2.1rem]">
+      <LogoMark priority className="size-full scale-[1.2]" />
+    </span>
+    <span className="font-area text-[1.7rem] font-black tracking-[-0.055em] transition-[letter-spacing] duration-300 group-hover/logo:tracking-[-0.02em] sm:text-[1.95rem]">
+      <span className="inline-block text-white transition-transform duration-300 ease-out group-hover/logo:-translate-y-[1.5px] group-hover/logo:scale-[1.02]">
+        ZUNO
       </span>
-      <span className="flex flex-col gap-[0.2rem]">
-        <span className="font-area text-[2.1rem] font-black tracking-[-0.04em] text-white sm:text-[2.5rem]">
-          Re
-          <span className="text-accent-500 transition-colors duration-300 group-hover/logo:text-[#d6ff6a]">flow</span>
-        </span>
-        <span className="hidden font-sans text-[1rem] font-medium tracking-[0.14em] text-white/30 uppercase transition-colors duration-300 group-hover/logo:text-white/50 sm:block">
-          recycle · relaunch
-        </span>
+      <span className="inline-block text-accent-500 transition-[transform,color] duration-300 ease-out group-hover/logo:translate-y-[1.5px] group-hover/logo:scale-[1.04] group-hover/logo:text-[#d4ff4a]">
+        .FUN
       </span>
     </span>
-  );
-};
+  </span>
+);
+
+/** Compact footer / inline lockup */
+export const LogoWordmark = ({ className }: { className?: string }) => (
+  <span
+    className={cn(
+      "group/logo inline-flex items-center gap-[0.45rem] select-none leading-none",
+      className,
+    )}
+    aria-label="ZUNO.FUN"
+  >
+    <span className="grid size-[1.7rem] place-content-center overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover/logo:-rotate-[14deg] group-hover/logo:scale-110 group-active/logo:scale-90">
+      <LogoMark className="size-full scale-[1.2]" />
+    </span>
+    <span className="font-area text-[1.6rem] font-black tracking-[-0.04em] transition-[letter-spacing] duration-300 group-hover/logo:tracking-[-0.02em]">
+      <span className="text-white">ZUNO</span>
+      <span className="text-accent-500 transition-colors duration-300 group-hover/logo:text-[#d4ff4a]">.FUN</span>
+    </span>
+  </span>
+);

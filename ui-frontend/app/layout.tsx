@@ -26,7 +26,10 @@ const areaBlack = localFont({
   variable: "--font-area-normal",
 });
 
-export const metadata = getMetadata({ title: "Reflow", description: "Reflow — liquidity recycling launchpad" });
+export const metadata = getMetadata({
+  title: "ZUNO.FUN",
+  description: "ZUNO.FUN — Where liquidity finds its next home.",
+});
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (

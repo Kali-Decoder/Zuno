@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
 import TradeInfo from "~~/components/coin/BuyNSell";
+import { ZunoLoader } from "~~/components/common/ZunoLoader";
 import LifecyclePanel from "~~/components/token/LifecyclePanel";
 import {
   type TokenDetail,
@@ -197,7 +198,7 @@ function TokenTradePanel({ token }: { token: TokenDetail }) {
 
 function parsePriceLabel(label?: string): number | undefined {
   if (!label || label === "—") return undefined;
-  const n = Number(String(label).replace(/ MON$/i, "").trim());
+  const n = Number(String(label).replace(/ USDC$/i, "").trim());
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
@@ -221,6 +222,7 @@ function TokenChart({ token }: { token: TokenDetail }) {
   const [series, setSeries] = useState<PriceChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<"subgraph" | "mongo" | "rpc" | null>(null);
+  const dataEpoch = useTokenStore(s => s.dataEpoch);
   const spot = token.priceNative ?? parsePriceLabel(token.priceLabel);
 
   useEffect(() => {
@@ -251,7 +253,7 @@ function TokenChart({ token }: { token: TokenDetail }) {
     return () => {
       cancelled = true;
     };
-  }, [token.id, spot, tf]);
+  }, [token.id, spot, tf, dataEpoch]);
 
   const hasSeries = series.length > 1;
   const min = hasSeries ? Math.min(...series.map(p => p.v)) : 0;
@@ -364,6 +366,7 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
   const [tab, setTab] = useState<"trades" | "holders">("trades");
   const [trades, setTrades] = useState<UiTrade[]>([]);
   const [loading, setLoading] = useState(true);
+  const dataEpoch = useTokenStore(s => s.dataEpoch);
 
   useEffect(() => {
     let cancelled = false;
@@ -400,7 +403,7 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [tokenId]);
+  }, [tokenId, dataEpoch]);
 
   return (
     <section className="mt-[1.6rem] rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
@@ -477,8 +480,9 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
   const setMetadata = useTokenStore(s => s.setMetadata);
   const setRefetch = useTokenStore(s => s.setRefetch);
 
-  const hydrate = useCallback(async () => {
-    setLoading(true);
+  const hydrate = useCallback(async (opts?: { soft?: boolean }) => {
+    const soft = Boolean(opts?.soft);
+    if (!soft) setLoading(true);
     try {
       const api = await fetchApiToken(tokenId);
       let detail = api ? apiToTokenDetail(api) : null;
@@ -521,8 +525,8 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
             id: tokenId as `0x${string}`,
             name: "Token",
             symbol: "TKN",
-            imageUrl: "/gmonad.jpeg",
-            description: "Reflow bonding-curve token on Monad Testnet.",
+            imageUrl: "/zuno-logo.png",
+            description: "ZUNO bonding-curve token on Arc Testnet.",
             marketCapLabel: "$—",
             liquidityLabel: life.listed ? "DEX" : "Bonding",
             volume24hLabel: "$—",
@@ -567,8 +571,8 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
             id: tokenId as `0x${string}`,
             name: meta.name,
             symbol: meta.symbol,
-            imageUrl: "/gmonad.jpeg",
-            description: "Reflow bonding-curve token on Monad Testnet.",
+            imageUrl: "/zuno-logo.png",
+            description: "ZUNO bonding-curve token on Arc Testnet.",
             marketCapLabel: "$—",
             liquidityLabel: "Bonding",
             volume24hLabel: "$—",
@@ -627,23 +631,21 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
         });
       }
     } finally {
-      setLoading(false);
+      if (!soft) setLoading(false);
     }
   }, [tokenId, setTokenAddress, setMetadata]);
 
   useEffect(() => {
     setRefetch(() => {
-      void hydrate();
+      void hydrate({ soft: true });
     });
     void hydrate();
   }, [hydrate, setRefetch]);
 
   if (loading && !token) {
     return (
-      <div className="page-container pb-[6rem]">
-        <div className="animate-pulse rounded-[1.8rem] border border-white/[0.06] bg-[#121212] px-[2rem] py-[8rem] text-center text-white/40">
-          Loading token…
-        </div>
+      <div className="page-container grid min-h-[50vh] place-content-center pb-[6rem]">
+        <ZunoLoader size="lg" label="Loading token…" />
       </div>
     );
   }
@@ -690,7 +692,7 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
           tokenName={token.name}
           tokenSymbol={token.symbol}
           initialCurve={token.curve}
-          onUpdated={() => void hydrate()}
+          onUpdated={() => void hydrate({ soft: true })}
         />
       </div>
 

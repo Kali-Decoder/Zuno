@@ -162,8 +162,8 @@ const Navigation = () => {
         <div className="page-container flex h-[7.2rem] items-center justify-between gap-[1.2rem] sm:h-[8rem]">
           <Link
             href="/"
-            aria-label="Reflow home"
-            className="shrink-0 rounded-xl outline-none transition-opacity hover:opacity-95 focus-visible:ring-2 focus-visible:ring-accent-500/50"
+            aria-label="ZUNO.FUN home"
+            className="shrink-0 rounded-lg outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-accent-500/50"
           >
             <LogoLightTextSvg />
           </Link>

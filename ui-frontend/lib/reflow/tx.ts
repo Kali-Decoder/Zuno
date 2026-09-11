@@ -42,7 +42,7 @@ export async function sendContractTx(
     const buffered = estimated + estimated / 5n;
     gasLimit = buffered > fallback ? buffered : fallback;
   } catch {
-    // Monad wallet RPCs often fail estimateGas even when the call is valid.
+    // Some wallet RPCs fail estimateGas even when the call is valid.
   }
 
   const tx = await writer.getFunction(method)(...args, { ...overrides, gasLimit });
@@ -61,7 +61,7 @@ export function decodeCallError(error: unknown, method = "transaction") {
   }
   const raw = txError(error);
   if (raw.toLowerCase().includes("missing revert data")) {
-    return `${method} needs more gas than the wallet estimated. Retry — stay on Monad Testnet and keep MON for gas.`;
+    return `${method} needs more gas than the wallet estimated. Retry — stay on Arc Testnet and keep USDC for gas.`;
   }
   return raw;
 }

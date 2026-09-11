@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import CopyAddressToClipboard from "../common/CopyAddressToClipboard";
 import Pagination from "../common/Pagination";
 import { Spinner } from "../common/Spinner";
+import { ZunoLoader } from "../common/ZunoLoader";
 import Table, { TableColumnInterface, TableValueInterface } from "../common/Table";
 import { getLeaderboardData, getUserRank } from "~~/hooks/api-hooks";
 import { notification } from "~~/lib/notification";
@@ -266,7 +267,7 @@ const LeaderboardsTab = () => {
                 </span>
               </div>
               <p className="max-w-[44rem] text-[1.25rem] text-white/40">
-                Ranked by Reflow trading activity on Monad Testnet.
+                Ranked by ZUNO trading activity on Arc Testnet.
               </p>
             </div>
 
@@ -328,7 +329,7 @@ const LeaderboardsTab = () => {
               </div>
             ) : (
               <p className="max-w-[36rem] text-[1.25rem] text-white/40">
-                No score yet — trade bonding-curve tokens on Reflow to climb the board.
+                No score yet — trade bonding-curve tokens on ZUNO to climb the board.
               </p>
             )}
           </div>
@@ -338,7 +339,7 @@ const LeaderboardsTab = () => {
       <section className="rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
         {loadingLeaderboard ? (
           <div className="grid h-[28rem] place-content-center">
-            <Spinner />
+            <ZunoLoader size="lg" label="Loading rankings…" />
           </div>
         ) : paginatedData.length === 0 ? (
           <div className="grid h-[22rem] place-content-center px-[2rem] text-center">
