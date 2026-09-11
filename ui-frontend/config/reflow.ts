@@ -33,6 +33,15 @@ export const REFLOW: ReflowAddresses = {
   governor: env("NEXT_PUBLIC_GOVERNOR", deployed.governor),
 };
 
+/** Only this wallet sees lifecycle admin triggers (list / inactive / propose / vote / execute). */
+export const OPERATOR_ADDRESS = env(
+  "NEXT_PUBLIC_OPERATOR_ADDRESS",
+  "0xdAF0182De86F904918Db8d07c7340A1EfcDF8244",
+).toLowerCase();
+
+export const isOperatorAddress = (address?: string | null) =>
+  !!address && address.toLowerCase() === OPERATOR_ADDRESS;
+
 export const CORE_ABI = [
   "function createCurve(address creator, string name, string symbol, string tokenURI, uint256 amountIn, uint256 fee) payable returns (address curve, address token, uint256 virtualNative, uint256 virtualToken, uint256 amountOut)",
   "function buy(uint256 amountIn, uint256 fee, address token, address to, uint256 deadline) payable",

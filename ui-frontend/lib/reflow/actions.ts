@@ -177,6 +177,75 @@ export async function listToken(params: { signer: ethers.Signer; curveAddress: s
   return receipt;
 }
 
+/**
+ * Ensure curve is locked (buy remaining tokens to target if needed), then call listing().
+ * Fixes ERR_LISTING_ONLY_LOCK when UI progress is ~99% but lock flag is still false.
+ */
+export async function launchPool(params: {
+  signer: ethers.Signer;
+  account: string;
+  tokenAddress: string;
+  curveAddress: string;
+}) {
+  if (!isSetAddress(params.curveAddress) || !isSetAddress(params.tokenAddress)) {
+    throw new Error("Invalid curve or token address");
+  }
+
+  const provider = getPublicProvider();
+  const curve = new ethers.Contract(params.curveAddress, CURVE_ABI, provider);
+  const core = new ethers.Contract(REFLOW.core, CORE_ABI, provider);
+
+  let locked = (await curve.getLock()) as boolean;
+  if (!locked) {
+    const [reserves, target] = await Promise.all([
+      curve.getReserves() as Promise<[bigint, bigint]>,
+      curve.getTargetToken() as Promise<bigint>,
+    ]);
+    const reserveToken = reserves[1];
+    if (reserveToken <= target) {
+      throw new Error("Curve should be locked already. Refresh and try again.");
+    }
+
+    const tokensToBuy = reserveToken - target;
+    const [, virtualNative, virtualToken, k] = (await core.getCurveData(
+      REFLOW.bondingCurveFactory,
+      params.tokenAddress,
+    )) as [string, bigint, bigint, bigint];
+
+    const amountIn = (await core.getAmountIn(tokensToBuy, k, virtualNative, virtualToken)) as bigint;
+    let feeDen = 1n;
+    let feeNum = 100n;
+    try {
+      const feeCfg = await curve.getFeeConfig();
+      feeDen = BigInt(feeCfg.denominator ?? feeCfg[0] ?? 1);
+      feeNum = BigInt(feeCfg.numerator ?? feeCfg[1] ?? 100);
+    } catch {
+      /* defaults */
+    }
+    let fee = calcFee(amountIn, feeDen, feeNum);
+    if (fee === ZERO) fee = 1n;
+
+    // Small buffer for rounding; unused native is refunded by exactOutBuy
+    const amountInMax = amountIn + fee + ethers.parseEther("0.002");
+
+    await sendContractTx(
+      params.signer,
+      REFLOW.core,
+      CORE_ABI,
+      "exactOutBuy",
+      [amountInMax, tokensToBuy, params.tokenAddress, params.account, deadline()],
+      { value: amountInMax },
+    );
+
+    locked = (await curve.getLock()) as boolean;
+    if (!locked) {
+      throw new Error("Buy completed but curve did not lock. Refresh and retry Launch pool.");
+    }
+  }
+
+  return sendContractTx(params.signer, params.curveAddress, CURVE_ABI, "listing", []);
+}
+
 export async function markTokenInactive(params: { signer: ethers.Signer; tokenAddress: string }) {
   await sendContractTx(params.signer, REFLOW.lpVault, VAULT_ABI, "markInactive", [params.tokenAddress]);
 }

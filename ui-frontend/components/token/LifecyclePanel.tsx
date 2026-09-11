@@ -8,7 +8,7 @@ import {
   derivePhaseFromLifecycle,
   executeProposal,
   getTokenLifecycle,
-  listToken,
+  launchPool,
   loadLockedCandidates,
   markTokenInactive,
   proposeRecycle,
@@ -18,6 +18,7 @@ import {
 import { persistTokenPatch, lifecyclePersistBody } from "~~/lib/tokens/adapters";
 import { decodeCallError } from "~~/lib/reflow/tx";
 import { useReflowWallet } from "~~/hooks/useReflowWallet";
+import { isOperatorAddress } from "~~/config/reflow";
 import { cn } from "~~/lib/utils";
 import { shortenAddress } from "~~/utils/addressShort";
 
@@ -28,7 +29,7 @@ const PHASE_COPY: Record<string, { title: string; body: string }> = {
   },
   locked: {
     title: "Ready to graduate",
-    body: "Target reached. Anyone can launch the Uniswap pool and lock LP in the vault.",
+    body: "Target reached. An operator can launch the Uniswap pool and lock LP in the vault.",
   },
   listed: {
     title: "Pool live",
@@ -36,11 +37,11 @@ const PHASE_COPY: Record<string, { title: string; body: string }> = {
   },
   inactive: {
     title: "Inactive pool",
-    body: "Activity fell below threshold. Propose recycling liquidity into a healthier token.",
+    body: "Activity fell below threshold. An operator can propose recycling into a healthier token.",
   },
   voting: {
     title: "Recycling vote",
-    body: "Stake MON to vote which listed token receives the recycled liquidity.",
+    body: "Operator may stake MON to vote which listed token receives the recycled liquidity.",
   },
   recycling: {
     title: "Recycling",
@@ -83,6 +84,7 @@ export default function LifecyclePanel({
   onUpdated?: () => void;
 }) {
   const wallet = useReflowWallet();
+  const canOperate = isOperatorAddress(wallet.account);
   const [life, setLife] = useState<TokenLifecycle | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -123,6 +125,10 @@ export default function LifecyclePanel({
   }, [life, tokenAddress]);
 
   const withSigner = async (label: string, action: (signer: import("ethers").Signer) => Promise<void>) => {
+    if (!isOperatorAddress(wallet.account)) {
+      toast.error("Operator wallet required.");
+      return;
+    }
     setBusy(true);
     try {
       const ok = await wallet.runWrite(async signer => {
@@ -221,22 +227,34 @@ export default function LifecyclePanel({
       </div>
 
       <div className="flex flex-col gap-[1rem]">
-        {phase === "locked" && life.curve && (
-          <HoverButton
-            className="w-full sm:w-auto"
-            handleOnClick={() =>
-              void withSigner("Pool launched", async signer => {
-                await listToken({ signer, curveAddress: life.curve });
-              })
-            }
-          >
-            <span className="inline-flex items-center gap-[0.6rem]">
-              Launch pool {busy && <Spinner />}
-            </span>
-          </HoverButton>
+        {canOperate && !life.listed && life.curve && (life.locked || life.progress >= 99) && (
+          <div className="space-y-[0.6rem]">
+            <HoverButton
+              className="w-full sm:w-auto"
+              handleOnClick={() =>
+                void withSigner("Pool launched", async signer => {
+                  await launchPool({
+                    signer,
+                    account: wallet.account,
+                    tokenAddress,
+                    curveAddress: life.curve,
+                  });
+                })
+              }
+            >
+              <span className="inline-flex items-center gap-[0.6rem]">
+                {life.locked ? "Launch pool" : "Buy to lock & launch"} {busy && <Spinner />}
+              </span>
+            </HoverButton>
+            {!life.locked && (
+              <p className="text-[1.15rem] text-white/40">
+                Curve is at {life.progress.toFixed(1)}% — this buys the last tokens to lock, then lists the pool.
+              </p>
+            )}
+          </div>
         )}
 
-        {phase === "listed" && (
+        {canOperate && phase === "listed" && (
           <HoverButton
             className="w-full sm:w-auto"
             handleOnClick={() =>
@@ -251,7 +269,7 @@ export default function LifecyclePanel({
           </HoverButton>
         )}
 
-        {(phase === "inactive" || (life.recyclingEligible && !life.proposalId)) && (
+        {canOperate && (phase === "inactive" || (life.recyclingEligible && !life.proposalId)) && (
           <div className="space-y-[1rem] rounded-[1.2rem] bg-[#0f0f0f] p-[1.4rem]">
             <p className="text-[1.3rem] font-medium text-white">Propose recycle</p>
             <p className="text-[1.15rem] text-white/40">
@@ -296,7 +314,7 @@ export default function LifecyclePanel({
           </div>
         )}
 
-        {life.proposalId != null && life.proposalState && life.proposalState !== "Executed" && (
+        {canOperate && life.proposalId != null && life.proposalState && life.proposalState !== "Executed" && (
           <div className="space-y-[1rem] rounded-[1.2rem] bg-[#0f0f0f] p-[1.4rem]">
             <div className="flex flex-wrap items-center gap-[0.8rem]">
               <p className="text-[1.3rem] font-medium text-white">Proposal #{life.proposalId}</p>

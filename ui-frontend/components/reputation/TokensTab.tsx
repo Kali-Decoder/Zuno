@@ -3,10 +3,27 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../common/Tabs";
 import CoinCard from "../home/DiscoverCoins/CoinCard";
+import ActiveTokenCard from "./ActiveTokenCard";
 import UpcomingToken from "./UpcomingToken";
 import { useApiTokens } from "~~/hooks/useApiTokens";
 import { apiToCultToken } from "~~/lib/tokens/adapters";
 import { StarIcon, TrophyOutlineIcon, ZapIcon } from "~~/icons/symbols";
+
+function isActiveListed(t: {
+  graduated?: boolean;
+  isListing?: boolean;
+  inactive?: boolean;
+  phase?: string;
+}) {
+  const listed = Boolean(t.graduated || t.isListing || t.phase === "listed");
+  if (!listed) return false;
+  if (t.inactive || t.phase === "inactive") return false;
+  if (t.phase === "voting" || t.phase === "recycling" || t.phase === "recycled") return false;
+  return true;
+}
+
+const triggerClass =
+  "group flex w-fit items-center justify-start gap-[0.4rem] rounded-full border border-transparent bg-white/5 px-[1.2rem] leading-tight sm:w-full sm:gap-[0.8rem] sm:rounded-sm sm:bg-transparent sm:p-[1.2rem] sm:data-[state=active]:border-white/20 sm:data-[state=active]:bg-transparent";
 
 const TokensTab = () => {
   const { tokens: all, loading } = useApiTokens({ sync: true });
@@ -14,43 +31,65 @@ const TokensTab = () => {
 
   const bonding = cult.filter(t => !t.isGraduated);
   const graduated = cult.filter(t => t.isGraduated);
+  const active = all.filter(isActiveListed);
   const inactive = all.filter(t => t.phase === "inactive" || t.inactive);
   const voting = all.filter(t => t.phase === "voting" || t.proposal?.state === "Active");
 
   return (
-    <Tabs defaultValue="bonding" className="grid w-full grid-cols-1 gap-[1.6rem] sm:grid-cols-[20%_1fr]">
+    <Tabs defaultValue="active" className="grid w-full grid-cols-1 gap-[1.6rem] sm:grid-cols-[20%_1fr]">
       <aside className="h-full rounded-0 border-b border-b-white/10 pb-[0.8rem] sm:min-h-[60vh] sm:rounded-md sm:border-0 sm:bg-white/5 sm:p-[2.4rem]">
         <TabsList className="flex w-full justify-start gap-[0.8rem] bg-transparent p-0 sm:flex-col">
-          <TabsTrigger
-            value="bonding"
-            className="group flex w-fit items-center justify-start gap-[0.4rem] rounded-full border border-transparent bg-white/5 px-[1.2rem] leading-tight sm:w-full sm:gap-[0.8rem] sm:rounded-sm sm:bg-transparent sm:p-[1.2rem] sm:data-[state=active]:border-white/20 sm:data-[state=active]:bg-transparent"
-          >
+          <TabsTrigger value="active" className={triggerClass}>
+            <ZapIcon className="w-[1rem] text-emerald-400 group-data-[state=active]:text-accent-500 sm:w-[1.4rem]" />
+            <span>Active</span>
+          </TabsTrigger>
+          <TabsTrigger value="bonding" className={triggerClass}>
             <StarIcon className="w-[1rem] group-data-[state=active]:fill-accent-500 sm:w-[1.4rem]" />
             <span>Bonding</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="graduated"
-            className="group flex w-fit items-center justify-start gap-[0.4rem] rounded-full border border-transparent bg-white/5 px-[1.2rem] leading-tight sm:w-full sm:gap-[0.8rem] sm:rounded-sm sm:bg-transparent sm:p-[1.2rem] sm:data-[state=active]:border-white/20 sm:data-[state=active]:bg-transparent"
-          >
+          <TabsTrigger value="graduated" className={triggerClass}>
             <TrophyOutlineIcon className="w-[1rem] group-data-[state=active]:text-accent-500 sm:w-[1.4rem]" />
             <span>Graduated</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="inactive"
-            className="group flex w-fit items-center justify-start gap-[0.4rem] rounded-full border border-transparent bg-white/5 px-[1.2rem] leading-tight sm:w-full sm:gap-[0.8rem] sm:rounded-sm sm:bg-transparent sm:p-[1.2rem] sm:data-[state=active]:border-white/20 sm:data-[state=active]:bg-transparent"
-          >
+          <TabsTrigger value="inactive" className={triggerClass}>
             <ZapIcon className="w-[1rem] group-data-[state=active]:text-accent-500 sm:w-[1.4rem]" />
             <span>Inactive</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="voting"
-            className="group flex w-fit items-center justify-start gap-[0.4rem] rounded-full border border-transparent bg-white/5 px-[1.2rem] leading-tight sm:w-full sm:gap-[0.8rem] sm:rounded-sm sm:bg-transparent sm:p-[1.2rem] sm:data-[state=active]:border-white/20 sm:data-[state=active]:bg-transparent"
-          >
+          <TabsTrigger value="voting" className={triggerClass}>
             <ZapIcon className="w-[1rem] group-data-[state=active]:text-accent-500 sm:w-[1.4rem]" />
             <span>Voting</span>
           </TabsTrigger>
         </TabsList>
       </aside>
+
+      <TabsContent value="active">
+        <div className="space-y-[2.4rem]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Active pools</h2>
+            <span className="text-[1rem] text-white/60">
+              {loading ? "…" : `${active.length} tokens`}
+            </span>
+          </div>
+          <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/[0.08] p-[1.5rem]">
+            <p className="mb-[0.5rem] font-medium text-emerald-300">Live on DEX</p>
+            <p className="text-[1.2rem] text-white/70">
+              Listed tokens with vault-locked LP that are still active — trade via DexRouter.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
+            {active.map(token => (
+              <ActiveTokenCard key={token.address} token={token} />
+            ))}
+          </div>
+          {active.length === 0 && (
+            <div className="py-[4rem] text-center">
+              <p className="text-[1.2rem] text-white/60">
+                {loading ? "Loading…" : "No active listed pools yet. Graduate a bonding token to see it here."}
+              </p>
+            </div>
+          )}
+        </div>
+      </TabsContent>
 
       <TabsContent value="bonding">
         <div className="space-y-[2.4rem]">
