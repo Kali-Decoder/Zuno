@@ -2,12 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
 import TradeInfo from "~~/components/coin/BuyNSell";
 import LifecyclePanel from "~~/components/token/LifecyclePanel";
 import {
-  getMockTrades,
   type TokenDetail,
 } from "~~/constants/tokenDetail";
 import { fetchApiToken } from "~~/hooks/useApiTokens";
@@ -202,10 +201,22 @@ function parsePriceLabel(label?: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+async function fetchIndexedChart(tokenId: string, tf: ChartTimeframe): Promise<PriceChartPoint[]> {
+  try {
+    const res = await fetch(`/api/tokens/${tokenId}/chart?tf=${tf}`);
+    const data = await res.json();
+    const series = (data.series || []) as PriceChartPoint[];
+    return series.length > 1 ? series : [];
+  } catch {
+    return [];
+  }
+}
+
 function TokenChart({ token }: { token: TokenDetail }) {
   const [tf, setTf] = useState<ChartTimeframe>("1H");
   const [series, setSeries] = useState<PriceChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<"index" | "rpc" | null>(null);
   const spot = token.priceNative ?? parsePriceLabel(token.priceLabel);
 
   useEffect(() => {
@@ -213,10 +224,22 @@ function TokenChart({ token }: { token: TokenDetail }) {
     setLoading(true);
     (async () => {
       try {
+        const indexed = await fetchIndexedChart(token.id, tf);
+        if (!cancelled && indexed.length > 1) {
+          setSeries(indexed);
+          setSource("index");
+          return;
+        }
         const points = await getTokenPriceSeries(token.id, tf, spot);
-        if (!cancelled) setSeries(points);
+        if (!cancelled) {
+          setSeries(points);
+          setSource(points.length > 1 ? "rpc" : null);
+        }
       } catch {
-        if (!cancelled) setSeries([]);
+        if (!cancelled) {
+          setSeries([]);
+          setSource(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -245,7 +268,9 @@ function TokenChart({ token }: { token: TokenDetail }) {
     <section className="flex h-full flex-col rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
       <div className="mb-[1.4rem] flex flex-col gap-[1rem] sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[1.15rem] uppercase tracking-[0.06em] text-white/30">Overview</p>
+          <p className="text-[1.15rem] uppercase tracking-[0.06em] text-white/30">
+            Overview{source === "index" ? " · indexed" : source === "rpc" ? " · live" : ""}
+          </p>
           <p className="mt-[0.25rem] text-[2rem] font-semibold tabular-nums text-white">
             {token.priceLabel && token.priceLabel !== "—" ? token.priceLabel : token.marketCapLabel}
           </p>
@@ -298,7 +323,7 @@ function TokenChart({ token }: { token: TokenDetail }) {
               {loading ? "Loading chart…" : "Waiting for spot price…"}
             </p>
             <p className="max-w-[32rem] text-[1.15rem] text-white/25">
-              Built from on-chain Sync / trade events when available.
+              Indexed candles load first; sync runs via /api/tokens/sync.
             </p>
           </div>
         )}
@@ -307,9 +332,68 @@ function TokenChart({ token }: { token: TokenDetail }) {
   );
 }
 
+function formatTradeTime(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "just now";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+type UiTrade = {
+  id: string;
+  buy: boolean;
+  amountLabel: string;
+  address: string;
+  ethLabel: string;
+  timeLabel: string;
+};
+
 function RecentTrades({ tokenId }: { tokenId: string }) {
   const [tab, setTab] = useState<"trades" | "holders">("trades");
-  const trades = useMemo(() => getMockTrades(tokenId), [tokenId]);
+  const [trades, setTrades] = useState<UiTrade[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/tokens/${tokenId}/trades?limit=40`);
+        const data = await res.json();
+        const rows = (data.trades || []) as Array<{
+          id: string;
+          buy: boolean;
+          trader: string;
+          amountNative: number;
+          amountToken: number;
+          timestamp: string;
+        }>;
+        if (cancelled) return;
+        setTrades(
+          rows.map(t => ({
+            id: t.id,
+            buy: t.buy,
+            amountLabel: `${t.amountToken.toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens`,
+            address: shortenAddress(t.trader),
+            ethLabel: formatCompactMon(t.amountNative),
+            timeLabel: formatTradeTime(t.timestamp),
+          })),
+        );
+      } catch {
+        if (!cancelled) setTrades([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tokenId]);
 
   return (
     <section className="mt-[1.6rem] rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
@@ -341,7 +425,7 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
       {tab === "trades" ? (
         trades.length === 0 ? (
           <div className="rounded-[1.2rem] border border-dashed border-white/10 px-[1.4rem] py-[3.5rem] text-center text-[1.25rem] text-white/30">
-            No trades indexed yet
+            {loading ? "Loading trades…" : "No trades indexed yet — sync will pick up Buy/Sell events"}
           </div>
         ) : (
           <div className="space-y-[0.3rem]">

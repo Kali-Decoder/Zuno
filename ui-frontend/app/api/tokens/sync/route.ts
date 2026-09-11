@@ -4,7 +4,7 @@ import { syncChainToMongo } from "~~/lib/tokens/mongoSync";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Sync Create + vault + governor events (and bonding progress) into MongoDB. */
+/** Sync Create + vault + governor + trade/candle index into MongoDB. */
 export async function POST() {
   try {
     const result = await syncChainToMongo();

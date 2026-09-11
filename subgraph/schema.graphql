@@ -1,0 +1,55 @@
+"""
+Reflow subgraph — indexes bonding-curve + DEX pool activity on Monad Testnet.
+"""
+
+type Token @entity(immutable: false) {
+  id: ID! # token address
+  address: Bytes!
+  name: String!
+  symbol: String!
+  creator: Bytes
+  curve: Bytes
+  pair: Bytes
+  tokenURI: String
+  createdAt: BigInt!
+  createdBlock: BigInt!
+  graduated: Boolean!
+  listedAt: BigInt
+  tradeCount: BigInt!
+  volumeNative: BigDecimal!
+  lastPriceNative: BigDecimal!
+  lastTradeAt: BigInt
+}
+
+type Trade @entity(immutable: true) {
+  id: ID! # txHash-logIndex
+  token: Token!
+  txHash: Bytes!
+  logIndex: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  trader: Bytes!
+  isBuy: Boolean!
+  amountNative: BigDecimal!
+  amountToken: BigDecimal!
+  priceNative: BigDecimal!
+  source: String! # "curve" | "dex"
+}
+
+type Candle1m @entity(immutable: false) {
+  id: ID! # token-openTime
+  token: Token!
+  openTime: BigInt!
+  open: BigDecimal!
+  high: BigDecimal!
+  low: BigDecimal!
+  close: BigDecimal!
+  volumeNative: BigDecimal!
+  tradeCount: BigInt!
+}
+
+type Factory @entity(immutable: false) {
+  id: ID! # factory address
+  tokenCount: BigInt!
+  tradeCount: BigInt!
+}

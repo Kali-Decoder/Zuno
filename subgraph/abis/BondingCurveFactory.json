@@ -1,0 +1,17 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "owner", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "curve", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "token", "type": "address" },
+      { "indexed": false, "internalType": "string", "name": "tokenURI", "type": "string" },
+      { "indexed": false, "internalType": "string", "name": "name", "type": "string" },
+      { "indexed": false, "internalType": "string", "name": "symbol", "type": "string" },
+      { "indexed": false, "internalType": "uint256", "name": "virtualNative", "type": "uint256" },
+      { "indexed": false, "internalType": "uint256", "name": "virtualToken", "type": "uint256" }
+    ],
+    "name": "Create",
+    "type": "event"
+  }
+]

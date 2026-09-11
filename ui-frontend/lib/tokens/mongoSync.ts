@@ -10,6 +10,7 @@ import {
 import { connectMongo } from "~~/lib/db/mongodb";
 import { deriveTokenPhase, TokenModel, type TokenPhase } from "~~/models/Token";
 import { PROPOSAL_STATE_LABELS } from "~~/config/reflow";
+import { syncTradesToMongo } from "~~/lib/tokens/tradeSync";
 
 function lower(addr: string) {
   return addr.toLowerCase();
@@ -276,6 +277,13 @@ export async function syncChainToMongo() {
     }
   }
 
+  let trades = { tradeEvents: 0, tokensIndexed: 0, latest: 0 };
+  try {
+    trades = await syncTradesToMongo({ limit: 30, lookbackBlocks: 20_000 });
+  } catch {
+    /* trade index optional — token sync still succeeds */
+  }
+
   return {
     ok: true as const,
     created,
@@ -286,6 +294,8 @@ export async function syncChainToMongo() {
     executed,
     progressed,
     createEvents: creates.length,
+    tradeEvents: trades.tradeEvents,
+    tokensTradeIndexed: trades.tokensIndexed,
   };
 }
 

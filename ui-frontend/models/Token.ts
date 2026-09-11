@@ -82,6 +82,10 @@ export type TokenDoc = {
   volumeUsd?: number;
   lastBuyAt?: Date;
 
+  // Trade indexer cursor
+  lastTradeBlock?: number;
+  tradesSyncedAt?: Date;
+
   // Vault (ILPRecyclingVault.LockedLP)
   vaultStatus: PositionStatus;
   vaultStatusCode?: number;
@@ -176,6 +180,8 @@ const TokenSchema = new Schema<TokenDoc>(
     marketCapUsd: { type: Number, default: 0 },
     volumeUsd: { type: Number, default: 0 },
     lastBuyAt: { type: Date },
+    lastTradeBlock: { type: Number, default: 0 },
+    tradesSyncedAt: { type: Date },
 
     vaultStatus: {
       type: String,

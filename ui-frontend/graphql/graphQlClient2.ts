@@ -78,8 +78,35 @@ export const createAccount = async (payload: {
 export const fetchAirdrop = async (_accountId: string, tokenAddress: `0x${string}`): Promise<AirdropResponse | null> =>
   delay(null);
 
-export async function fetchTokenTrades(_tokenAddress: string, _first = 20, _skip = 0): Promise<TokenTrade[]> {
-  return delay([]);
+export async function fetchTokenTrades(tokenAddress: string, first = 20, _skip = 0): Promise<TokenTrade[]> {
+  try {
+    const res = await fetch(`/api/tokens/${tokenAddress}/trades?limit=${first}`);
+    const data = await res.json();
+    const rows = (data.trades || []) as Array<{
+      id: string;
+      buy: boolean;
+      trader: string;
+      amountNative: number;
+      amountToken: number;
+      timestamp: string;
+      txHash: string;
+    }>;
+    return rows.map(t => ({
+      id: t.id,
+      tradeType: t.buy ? "BUY" : "SELL",
+      trader: t.trader,
+      recipient: t.trader,
+      orderReferrer: "",
+      ethAmount: String(t.amountNative),
+      tokenAmount: String(t.amountToken),
+      traderTokenBalance: "0",
+      marketType: 0,
+      timestamp: t.timestamp,
+      transactionHash: t.txHash,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchHolderDistribution(_tokenAddress: string) {
