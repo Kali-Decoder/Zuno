@@ -10,6 +10,7 @@ interface CoinHeaderProps {
   isWatchlisted: boolean;
   age: string; // Should be a future ISO string or UNIX timestamp
   className?: string;
+  isInactive?: boolean;
 }
 
 const formatDuration = (seconds: number) => {
@@ -22,7 +23,15 @@ const formatDuration = (seconds: number) => {
   return `${d}d ${h}h ${m}m ${s}s`;
 };
 
-const CoinHeader: React.FC<CoinHeaderProps> = ({ title, creatorId, tokenId, symbol, age, className }) => {
+const CoinHeader: React.FC<CoinHeaderProps> = ({
+  title,
+  creatorId,
+  tokenId,
+  symbol,
+  age,
+  className,
+  isInactive,
+}) => {
   const [countdown, setCountdown] = useState<string>("");
 
   useEffect(() => {
@@ -43,9 +52,14 @@ const CoinHeader: React.FC<CoinHeaderProps> = ({ title, creatorId, tokenId, symb
   return (
     <div className={cn("flex flex-col gap-[0.2rem] md:gap-[0.4rem] w-full flex-grow", className)}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-[0.4rem]">
+        <div className="flex flex-wrap items-center gap-[0.4rem]">
           <h3 className="text-accent-500 font-bold">{title}</h3>
           <span className="text-[1rem] uppercase text-white/60">({symbol})</span>
+          {isInactive && (
+            <span className="rounded-full border border-orange-500/35 bg-orange-500/15 px-[0.65rem] py-[0.15rem] text-[0.95rem] font-semibold uppercase tracking-wider text-orange-400">
+              Inactive
+            </span>
+          )}
         </div>
         <div className="text-[1rem] text-white/60 px-[0.8rem] py-[0.4rem] bg-white/5 rounded-full border border-white/10">
           <p>{countdown}</p>

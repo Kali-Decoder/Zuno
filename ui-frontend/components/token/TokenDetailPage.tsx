@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Copy, ExternalLink } from "lucide-react";
 import TradeInfo from "~~/components/coin/BuyNSell";
 import { PanelSkeleton, TokenDetailSkeleton } from "~~/components/common/TokenSkeleton";
 import LifecyclePanel from "~~/components/token/LifecyclePanel";
@@ -371,24 +371,169 @@ function formatTradeTime(iso: string) {
 type UiTrade = {
   id: string;
   buy: boolean;
+  amountToken: number;
   amountLabel: string;
-  address: string;
+  amountNative: number;
   ethLabel: string;
+  trader: string;
+  traderAddressUrl: string;
   timeLabel: string;
+  txHash?: string;
+  txUrl?: string;
 };
 
-function RecentTrades({ tokenId }: { tokenId: string }) {
+type UiHolder = {
+  rank: number;
+  address: string;
+  balance: number;
+  balanceFormatted: string;
+  percentage: number;
+  percentageFormatted: string;
+  label?: string | null;
+  isContract: boolean;
+  txHash?: string | null;
+  txUrl?: string | null;
+  addressUrl: string;
+};
+
+function CopyButton({ text, className }: { text: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const onCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    void navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      title="Copy to clipboard"
+      className={cn(
+        "inline-flex items-center justify-center text-white/40 transition hover:text-white",
+        className,
+      )}
+    >
+      {copied ? <Check className="size-[1.2rem] text-emerald-400" /> : <Copy className="size-[1.2rem]" />}
+    </button>
+  );
+}
+
+const ITEMS_PER_PAGE = 10;
+
+function TablePagination({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const start = (currentPage - 1) * itemsPerPage + 1;
+  const end = Math.min(currentPage * itemsPerPage, totalItems);
+
+  const getPages = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const startPage = Math.max(2, currentPage - 1);
+      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="mt-[1.4rem] flex flex-col items-center justify-between gap-[1rem] border-t border-white/[0.06] pt-[1.2rem] sm:flex-row">
+      <p className="text-[1.15rem] text-white/40">
+        Showing <span className="font-medium text-white/75">{start}–{end}</span> of{" "}
+        <span className="font-medium text-white/75">{totalItems}</span>
+      </p>
+
+      <div className="flex items-center gap-[0.4rem]">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          className="inline-flex h-[3rem] items-center gap-[0.3rem] rounded-full border border-white/10 bg-white/[0.03] px-[1.1rem] text-[1.15rem] font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+        >
+          <ChevronLeft className="size-[1.3rem]" />
+          <span>Prev</span>
+        </button>
+
+        <div className="flex items-center gap-[0.3rem]">
+          {getPages().map((page, idx) =>
+            typeof page === "string" ? (
+              <span key={`dots-${idx}`} className="px-[0.5rem] text-[1.2rem] text-white/30">
+                …
+              </span>
+            ) : (
+              <button
+                key={page}
+                type="button"
+                onClick={() => onPageChange(page)}
+                className={cn(
+                  "grid size-[2.8rem] place-content-center rounded-full text-[1.15rem] font-medium transition",
+                  page === currentPage
+                    ? "bg-accent-500 font-semibold text-black"
+                    : "text-white/60 hover:bg-white/10 hover:text-white",
+                )}
+              >
+                {page}
+              </button>
+            ),
+          )}
+        </div>
+
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          className="inline-flex h-[3rem] items-center gap-[0.3rem] rounded-full border border-white/10 bg-white/[0.03] px-[1.1rem] text-[1.15rem] font-medium text-white/70 transition hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+        >
+          <span>Next</span>
+          <ChevronRight className="size-[1.3rem]" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecentTrades({ tokenId, tokenSymbol }: { tokenId: string; tokenSymbol?: string }) {
   const [tab, setTab] = useState<"trades" | "holders">("trades");
   const [trades, setTrades] = useState<UiTrade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingTrades, setLoadingTrades] = useState(true);
+  const [tradesPage, setTradesPage] = useState(1);
+
+  const [holders, setHolders] = useState<UiHolder[]>([]);
+  const [loadingHolders, setLoadingHolders] = useState(false);
+  const [holdersLoaded, setHoldersLoaded] = useState(false);
+  const [holdersPage, setHoldersPage] = useState(1);
+
   const dataEpoch = useTokenStore(s => s.dataEpoch);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setLoadingTrades(true);
     (async () => {
       try {
-        const res = await fetch(`/api/tokens/${tokenId}/trades?limit=40`);
+        const res = await fetch(`/api/tokens/${tokenId}/trades?limit=100`);
         const data = await res.json();
         const rows = (data.trades || []) as Array<{
           id: string;
@@ -397,28 +542,77 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
           amountNative: number;
           amountToken: number;
           timestamp: string;
+          txHash?: string;
+          txUrl?: string;
         }>;
         if (cancelled) return;
         setTrades(
-          rows.map(t => ({
-            id: t.id,
-            buy: t.buy,
-            amountLabel: `${t.amountToken.toLocaleString(undefined, { maximumFractionDigits: 2 })} tokens`,
-            address: shortenAddress(t.trader),
-            ethLabel: formatCompactMon(t.amountNative),
-            timeLabel: formatTradeTime(t.timestamp),
-          })),
+          rows.map(t => {
+            const txHash = t.txHash || "";
+            return {
+              id: t.id,
+              buy: t.buy,
+              amountToken: t.amountToken,
+              amountLabel: `${t.amountToken.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+              amountNative: t.amountNative,
+              ethLabel: formatCompactMon(t.amountNative),
+              trader: t.trader,
+              traderAddressUrl: `https://testnet.arcscan.app/address/${t.trader}`,
+              timeLabel: formatTradeTime(t.timestamp),
+              txHash,
+              txUrl: t.txUrl || (txHash ? `https://testnet.arcscan.app/tx/${txHash}` : undefined),
+            };
+          }),
         );
       } catch {
         if (!cancelled) setTrades([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoadingTrades(false);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [tokenId, dataEpoch]);
+
+  useEffect(() => {
+    if (tab !== "holders" && holdersLoaded) return;
+    let cancelled = false;
+    setLoadingHolders(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/tokens/${tokenId}/holders`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.ok && Array.isArray(data.holders)) {
+          setHolders(data.holders);
+          setHoldersLoaded(true);
+        } else {
+          setHolders([]);
+        }
+      } catch {
+        if (!cancelled) setHolders([]);
+      } finally {
+        if (!cancelled) setLoadingHolders(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tokenId, tab, dataEpoch]);
+
+  // Paginated slices
+  const totalTradesPages = Math.max(1, Math.ceil(trades.length / ITEMS_PER_PAGE));
+  const paginatedTrades = trades.slice(
+    (tradesPage - 1) * ITEMS_PER_PAGE,
+    tradesPage * ITEMS_PER_PAGE,
+  );
+
+  const totalHoldersPages = Math.max(1, Math.ceil(holders.length / ITEMS_PER_PAGE));
+  const paginatedHolders = holders.slice(
+    (holdersPage - 1) * ITEMS_PER_PAGE,
+    holdersPage * ITEMS_PER_PAGE,
+  );
 
   return (
     <section className="mt-[1.6rem] rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
@@ -428,62 +622,290 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
             type="button"
             onClick={() => setTab("trades")}
             className={cn(
-              "rounded-full px-[1.3rem] py-[0.55rem] text-[1.2rem] font-medium",
-              tab === "trades" ? "bg-white/10 text-white" : "text-white/40",
+              "flex items-center gap-[0.6rem] rounded-full px-[1.3rem] py-[0.55rem] text-[1.2rem] font-medium transition",
+              tab === "trades" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70",
             )}
           >
-            Trades
+            <span>Trades</span>
+            {trades.length > 0 && (
+              <span className="rounded-full bg-white/10 px-[0.6rem] py-[0.1rem] text-[1rem] text-white/70">
+                {trades.length}
+              </span>
+            )}
           </button>
           <button
             type="button"
             onClick={() => setTab("holders")}
             className={cn(
-              "rounded-full px-[1.3rem] py-[0.55rem] text-[1.2rem] font-medium",
-              tab === "holders" ? "bg-white/10 text-white" : "text-white/40",
+              "flex items-center gap-[0.6rem] rounded-full px-[1.3rem] py-[0.55rem] text-[1.2rem] font-medium transition",
+              tab === "holders" ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70",
             )}
           >
-            Holders
+            <span>Holders</span>
+            {holders.length > 0 && (
+              <span className="rounded-full bg-white/10 px-[0.6rem] py-[0.1rem] text-[1rem] text-white/70">
+                {holders.length}
+              </span>
+            )}
           </button>
         </div>
       </div>
 
       {tab === "trades" ? (
-        loading ? (
+        loadingTrades ? (
           <PanelSkeleton rows={5} className="border-0 bg-transparent p-0" />
         ) : trades.length === 0 ? (
           <div className="rounded-[1.2rem] border border-dashed border-white/10 px-[1.4rem] py-[3.5rem] text-center text-[1.25rem] text-white/30">
             No trades yet — deploy/sync the subgraph or wait for Buy/Sell events
           </div>
         ) : (
-          <div className="space-y-[0.3rem]">
-            {trades.map(trade => (
-              <div
-                key={trade.id}
-                className="flex items-center gap-[1rem] rounded-[1rem] px-[0.8rem] py-[0.9rem] transition-colors hover:bg-white/[0.03]"
-              >
-                <span
-                  className={cn(
-                    "grid size-[2.2rem] place-content-center rounded-full",
-                    trade.buy ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400",
-                  )}
-                >
-                  {trade.buy ? <ArrowUpRight className="size-[1.2rem]" /> : <ArrowDownLeft className="size-[1.2rem]" />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[1.25rem] font-medium text-white">{trade.amountLabel}</p>
-                  <p className="text-[1.05rem] text-white/35">{trade.address}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[1.2rem] text-white/85">{trade.ethLabel}</p>
-                  <p className="text-[1.05rem] text-white/35">{trade.timeLabel}</p>
-                </div>
-              </div>
-            ))}
+          <div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[580px] text-left">
+                <thead>
+                  <tr className="border-b border-white/[0.06] text-[1.1rem] font-medium uppercase tracking-wider text-white/40">
+                    <th className="pb-[1rem] pl-[0.8rem]">Type</th>
+                    <th className="pb-[1rem]">Tokens</th>
+                    <th className="pb-[1rem]">Value</th>
+                    <th className="pb-[1rem]">Trader</th>
+                    <th className="pb-[1rem]">Time</th>
+                    <th className="pb-[1rem] pr-[0.8rem] text-right">Transaction</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  {paginatedTrades.map(trade => (
+                    <tr
+                      key={trade.id}
+                      className="transition-colors hover:bg-white/[0.02]"
+                    >
+                      <td className="py-[1rem] pl-[0.8rem]">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-[0.4rem] rounded-full px-[0.8rem] py-[0.35rem] text-[1.1rem] font-semibold",
+                            trade.buy
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-red-500/15 text-red-400",
+                          )}
+                        >
+                          {trade.buy ? (
+                            <ArrowUpRight className="size-[1.2rem]" />
+                          ) : (
+                            <ArrowDownLeft className="size-[1.2rem]" />
+                          )}
+                          <span>{trade.buy ? "Buy" : "Sell"}</span>
+                        </span>
+                      </td>
+
+                      <td className="py-[1rem]">
+                        <span className="text-[1.2rem] font-medium text-white">
+                          {trade.amountLabel}
+                        </span>
+                      </td>
+
+                      <td className="py-[1rem]">
+                        <span className="text-[1.2rem] font-medium text-white/85">
+                          {trade.ethLabel}
+                        </span>
+                      </td>
+
+                      <td className="py-[1rem]">
+                        <div className="flex items-center gap-[0.5rem]">
+                          <a
+                            href={trade.traderAddressUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-[1.15rem] text-white/70 transition hover:text-white hover:underline"
+                            title={trade.trader}
+                          >
+                            {shortenAddress(trade.trader)}
+                          </a>
+                          <CopyButton text={trade.trader} />
+                        </div>
+                      </td>
+
+                      <td className="py-[1rem]">
+                        <span className="text-[1.15rem] text-white/40">
+                          {trade.timeLabel}
+                        </span>
+                      </td>
+
+                      <td className="py-[1rem] pr-[0.8rem] text-right">
+                        {trade.txUrl ? (
+                          <a
+                            href={trade.txUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-[0.4rem] rounded-full bg-white/[0.04] px-[0.85rem] py-[0.4rem] font-mono text-[1.1rem] text-white/70 transition hover:bg-white/10 hover:text-white"
+                            title="View transaction on ArcScan Explorer"
+                          >
+                            <span>
+                              {trade.txHash
+                                ? `${trade.txHash.slice(0, 6)}...${trade.txHash.slice(-4)}`
+                                : "View Tx"}
+                            </span>
+                            <ExternalLink className="size-[1.1rem]" />
+                          </a>
+                        ) : (
+                          <span className="text-[1.15rem] text-white/20">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <TablePagination
+              currentPage={tradesPage}
+              totalPages={totalTradesPages}
+              totalItems={trades.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setTradesPage}
+            />
           </div>
         )
-      ) : (
+      ) : loadingHolders ? (
+        <PanelSkeleton rows={5} className="border-0 bg-transparent p-0" />
+      ) : holders.length === 0 ? (
         <div className="rounded-[1.2rem] border border-dashed border-white/10 px-[1.4rem] py-[3.5rem] text-center text-[1.25rem] text-white/30">
-          Holder list coming soon
+          No holders found for this token
+        </div>
+      ) : (
+        <div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[580px] text-left">
+              <thead>
+                <tr className="border-b border-white/[0.06] text-[1.1rem] font-medium uppercase tracking-wider text-white/40">
+                  <th className="w-[4.5rem] pb-[1rem] pl-[0.8rem]">#</th>
+                  <th className="pb-[1rem]">Holder</th>
+                  <th className="pb-[1rem]">Percentage</th>
+                  <th className="pb-[1rem]">Quantity</th>
+                  <th className="pb-[1rem] pr-[0.8rem] text-right">Transaction</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.03]">
+                {paginatedHolders.map(holder => (
+                  <tr
+                    key={holder.address}
+                    className="transition-colors hover:bg-white/[0.02]"
+                  >
+                    <td className="py-[1rem] pl-[0.8rem]">
+                      <span
+                        className={cn(
+                          "font-mono text-[1.15rem]",
+                          holder.rank === 1
+                            ? "font-bold text-amber-400"
+                            : holder.rank === 2
+                            ? "font-bold text-zinc-300"
+                            : holder.rank === 3
+                            ? "font-bold text-amber-600"
+                            : "text-white/40",
+                        )}
+                      >
+                        #{holder.rank}
+                      </span>
+                    </td>
+
+                    <td className="py-[1rem]">
+                      <div className="flex flex-wrap items-center gap-[0.6rem]">
+                        <a
+                          href={holder.addressUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-[1.15rem] text-white/80 transition hover:text-white hover:underline"
+                          title={holder.address}
+                        >
+                          {shortenAddress(holder.address)}
+                        </a>
+                        <CopyButton text={holder.address} />
+                        {holder.label && (
+                          <span
+                            className={cn(
+                              "rounded-full px-[0.7rem] py-[0.15rem] text-[1rem] font-medium",
+                              holder.label === "Bonding Curve"
+                                ? "border border-purple-500/25 bg-purple-500/15 text-purple-300"
+                                : holder.label === "Uniswap V2 Pair"
+                                ? "border border-emerald-500/25 bg-emerald-500/15 text-emerald-300"
+                                : holder.label === "Creator"
+                                ? "border border-amber-500/25 bg-amber-500/15 text-amber-300"
+                                : "bg-white/10 text-white/70",
+                            )}
+                          >
+                            {holder.label}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="py-[1rem]">
+                      <div className="flex items-center gap-[0.8rem]">
+                        <div className="h-[0.5rem] w-[5rem] overflow-hidden rounded-full bg-white/10 sm:w-[7rem]">
+                          <div
+                            className="h-full rounded-full bg-accent-500"
+                            style={{
+                              width: `${Math.min(100, Math.max(2, holder.percentage))}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="font-mono text-[1.15rem] text-white/75">
+                          {holder.percentageFormatted}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="py-[1rem]">
+                      <span className="text-[1.2rem] font-medium text-white/90">
+                        {holder.balanceFormatted}
+                        {tokenSymbol ? (
+                          <span className="ml-[0.4rem] text-[1.05rem] text-white/40">
+                            ${tokenSymbol}
+                          </span>
+                        ) : null}
+                      </span>
+                    </td>
+
+                    <td className="py-[1rem] pr-[0.8rem] text-right">
+                      {holder.txUrl ? (
+                        <a
+                          href={holder.txUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-[0.4rem] rounded-full bg-white/[0.04] px-[0.85rem] py-[0.4rem] font-mono text-[1.1rem] text-white/70 transition hover:bg-white/10 hover:text-white"
+                          title="View acquisition transaction on ArcScan"
+                        >
+                          <span>
+                            {holder.txHash
+                              ? `${holder.txHash.slice(0, 6)}...${holder.txHash.slice(-4)}`
+                              : "View Tx"}
+                          </span>
+                          <ExternalLink className="size-[1.1rem]" />
+                        </a>
+                      ) : (
+                        <a
+                          href={holder.addressUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-[0.4rem] rounded-full bg-white/[0.02] px-[0.85rem] py-[0.4rem] text-[1.1rem] text-white/40 transition hover:bg-white/10 hover:text-white/80"
+                          title="View on ArcScan Explorer"
+                        >
+                          <span>Explorer</span>
+                          <ExternalLink className="size-[1.1rem]" />
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <TablePagination
+            currentPage={holdersPage}
+            totalPages={totalHoldersPages}
+            totalItems={holders.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setHoldersPage}
+          />
         </div>
       )}
     </section>
@@ -709,7 +1131,7 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
         />
       </div>
 
-      <RecentTrades tokenId={token.id} />
+      <RecentTrades tokenId={token.id} tokenSymbol={token.symbol} />
     </div>
   );
 }

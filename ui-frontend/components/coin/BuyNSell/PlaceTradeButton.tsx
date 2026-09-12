@@ -177,6 +177,14 @@ export default function TradeButton({
   };
 
   const getButtonConfig = () => {
+    if (!wallet.isCorrectNetwork) {
+      return {
+        text: "Switch to Arc Testnet",
+        handler: () => void wallet.switchToArc(),
+        disabled: wallet.isSubmitting,
+      };
+    }
+
     const symbol = metadata?.symbol || "tokens";
     if (tradeType === TradeOptions.SELL) {
       if (isPendingSell || wallet.isSubmitting) {

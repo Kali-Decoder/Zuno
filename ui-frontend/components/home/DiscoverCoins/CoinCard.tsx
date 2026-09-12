@@ -21,6 +21,12 @@ const CoinCard = ({ className, stage, token }: { className?: string; stage: "Pre
 
   const isPreBuyPhase = stage === "Prebuy";
   const isLivePhase = stage === "Live";
+  const isInactive = Boolean(
+    token.inactive ||
+    token.phase === "inactive" ||
+    token.vaultStatus === "Inactive" ||
+    token.recyclingEligible,
+  );
 
   // HARDCODED TIMER SETTINGS - Easy to adjust
   const TOTAL_PREBUY_HOURS = 24; // Total duration of pre-buy phase
@@ -115,6 +121,18 @@ const CoinCard = ({ className, stage, token }: { className?: string; stage: "Pre
               className="bg-black w-full aspect-square object-cover duration-300 transition-transform rounded-sm"
             />
             <div className="absolute h-full w-full bg-black/10 top-0 rounded-sm" />
+
+            {/* Inactive tag on image */}
+            {isInactive && (
+              <div
+                className="absolute top-[0.8rem] left-[0.8rem] z-10 flex items-center gap-[0.4rem] rounded-full border border-orange-500/40 bg-orange-500/25 px-[0.85rem] py-[0.35rem] text-[1.1rem] font-semibold text-orange-300 backdrop-blur-md shadow-sm"
+                title="Inactive token - Low activity, eligible for LP recycling"
+              >
+                <span className="size-[0.65rem] rounded-full bg-orange-400" />
+                <span>Inactive</span>
+              </div>
+            )}
+
             <button
               onClick={handlePhaseBadgeClick}
               className={cn(
@@ -122,18 +140,27 @@ const CoinCard = ({ className, stage, token }: { className?: string; stage: "Pre
                 "hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent",
                 isPreBuyPhase &&
                   "bg-gradient-to-br from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black border-yellow-300 focus:ring-yellow-400",
-                isLivePhase &&
+                !isPreBuyPhase && isInactive &&
+                  "bg-gradient-to-br from-orange-800 to-orange-950 hover:from-orange-700 hover:to-orange-800 text-orange-300 border-orange-400 focus:ring-orange-400",
+                !isPreBuyPhase && !isInactive && isLivePhase &&
                   "bg-gradient-to-br from-green-800 to-green-900 hover:from-green-700 hover:to-green-800 text-green-300 border-green-400 focus:ring-green-400",
               )}
-              title={isPreBuyPhase ? "Pre-buy Phase - Diamond Hands Only" : "Live Trading - Open to Everyone"}
-              aria-label={`Token is in ${isPreBuyPhase ? "pre-buy" : "live trading"} phase`}
+              title={
+                isPreBuyPhase
+                  ? "Pre-buy Phase - Diamond Hands Only"
+                  : isInactive
+                  ? "Inactive Phase - Eligible for LP Recycling"
+                  : "Live Trading - Open to Everyone"
+              }
+              aria-label={`Token is in ${isPreBuyPhase ? "pre-buy" : isInactive ? "inactive" : "live trading"} phase`}
             >
               {/* Background texture overlay */}
               <div
                 className={cn(
                   "absolute inset-0 rounded-full opacity-20",
                   isPreBuyPhase && "bg-gradient-to-br from-white/30 to-transparent",
-                  isLivePhase && "bg-gradient-to-br from-white/20 to-transparent",
+                  isInactive && "bg-gradient-to-br from-orange-400/30 to-transparent",
+                  !isInactive && isLivePhase && "bg-gradient-to-br from-white/20 to-transparent",
                 )}
               ></div>
 
@@ -148,13 +175,19 @@ const CoinCard = ({ className, stage, token }: { className?: string; stage: "Pre
 
               {/* Content */}
               <div className="relative flex items-center gap-2">
-                {isLivePhase && (
+                {isInactive ? (
+                  <div className="relative">
+                    <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                  </div>
+                ) : isLivePhase ? (
                   <div className="relative">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <div className="absolute inset-0 w-2 h-2 bg-green-400/50 rounded-full animate-ping"></div>
                   </div>
-                )}
-                <span className="relative font-semibold">{isPreBuyPhase ? "Pre-buy" : "Live"}</span>
+                ) : null}
+                <span className="relative font-semibold">
+                  {isPreBuyPhase ? "Pre-buy" : isInactive ? "Inactive" : "Live"}
+                </span>
               </div>
 
               <div className="absolute inset-0 rounded-full opacity-30"></div>
@@ -176,6 +209,7 @@ const CoinCard = ({ className, stage, token }: { className?: string; stage: "Pre
             creatorId={token.tokenCreator}
             age={token.blockTimestamp}
             isWatchlisted={token.isWatchlisted}
+            isInactive={isInactive}
           />
         </div>
 
@@ -280,28 +314,40 @@ const CoinCard = ({ className, stage, token }: { className?: string; stage: "Pre
                 </div>
               </div>
 
-              {/* Live Trading Phase - aligned with Pre-buy */}
-              <div
-                className="flex items-center gap-[0.4rem] cursor-help"
-                title="Public Trading Phase - Open to everyone"
-              >
+              {/* Live Trading / Inactive Phase - aligned with Pre-buy */}
+              {isInactive ? (
                 <div
-                  className={cn(
-                    "w-3 h-3 rounded-full border-2 transition-all duration-300",
-                    isLivePhase
-                      ? "bg-green-400 border-green-300 animate-pulse"
-                      : "bg-transparent border-white/30",
-                  )}
-                ></div>
-                <span
-                  className={cn(
-                    "text-[0.8rem] font-medium transition-colors duration-300",
-                    isLivePhase ? "text-green-400" : "text-white/50",
-                  )}
+                  className="flex items-center gap-[0.4rem] cursor-help"
+                  title="Inactive Pool - Low activity, eligible for LP recycling"
                 >
-                  Live Trading
-                </span>
-              </div>
+                  <div className="w-3 h-3 rounded-full border-2 bg-orange-400 border-orange-300" />
+                  <span className="text-[0.8rem] font-medium text-orange-400">
+                    Inactive
+                  </span>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-[0.4rem] cursor-help"
+                  title="Public Trading Phase - Open to everyone"
+                >
+                  <div
+                    className={cn(
+                      "w-3 h-3 rounded-full border-2 transition-all duration-300",
+                      isLivePhase
+                        ? "bg-green-400 border-green-300 animate-pulse"
+                        : "bg-transparent border-white/30",
+                    )}
+                  ></div>
+                  <span
+                    className={cn(
+                      "text-[0.8rem] font-medium transition-colors duration-300",
+                      isLivePhase ? "text-green-400" : "text-white/50",
+                    )}
+                  >
+                    Live Trading
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

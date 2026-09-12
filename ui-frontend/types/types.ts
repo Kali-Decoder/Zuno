@@ -54,6 +54,10 @@ export type CultToken = {
   description?: string;
 
   // Optional fields (not currently used in UI)
+  inactive?: boolean;
+  phase?: string;
+  recyclingEligible?: boolean;
+  vaultStatus?: string;
   bondingCurvePercentage?: number;
   buyTxCount24h?: number;
   creatorHoldings?: number;

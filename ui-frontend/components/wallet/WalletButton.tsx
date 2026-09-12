@@ -28,7 +28,6 @@ function WalletButtonInner() {
 
   const truncated = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "No wallet";
   const nativeBalance = balance ? `${parseFloat(balance.formatted).toFixed(2)} ${balance.symbol}` : "--";
-  const networkName = isValidChain ? "Arc Testnet" : "Wrong network";
 
   if (!mounted || !ready || !authenticated || !isConnected || !address) {
     return <ConnectWalletButton />;
@@ -39,21 +38,10 @@ function WalletButtonInner() {
       <DropdownMenu>
         <DropdownMenuTrigger className="group outline-none">
           <div className="flex h-[4rem] items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.06] px-[1.4rem] backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.1] sm:h-[4.4rem] sm:gap-3 sm:px-[1.8rem]">
-            <div className="flex items-center gap-2">
-              <div
-                className={`h-2 w-2 shrink-0 rounded-full ${isValidChain ? "bg-accent-500" : "bg-red-400"}`}
-              />
-              <span className="hidden font-sans text-[1.25rem] font-medium text-white/70 sm:inline sm:text-[1.35rem]">
-                {networkName}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 border-l border-white/10 pl-2 sm:pl-3">
-              <span className="font-area text-[1.35rem] font-black tracking-[-0.02em] text-white sm:text-[1.5rem]">
-                {truncated}
-              </span>
-              <ChevronDown className="h-4 w-4 text-white/60 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-            </div>
+            <span className="font-area text-[1.35rem] font-black tracking-[-0.02em] text-white sm:text-[1.5rem]">
+              {truncated}
+            </span>
+            <ChevronDown className="h-4 w-4 text-white/60 transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </div>
         </DropdownMenuTrigger>
 
@@ -85,17 +73,17 @@ function WalletButtonInner() {
           </div>
 
           <div className="space-y-2">
-            {!isValidChain && (
+            {!isValidChain ? (
               <button
                 type="button"
                 onClick={() => void switchChainAsync({ chainId: arcTestnet.id })}
-                className="group w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-[1rem] py-[0.85rem] text-white/70 transition-all duration-200 hover:border-accent-500/40 hover:bg-white/[0.05] hover:text-accent-500"
+                className="group w-full rounded-lg border border-accent-500/40 bg-accent-500/10 px-[1rem] py-[0.85rem] text-accent-500 transition-all duration-200 hover:bg-accent-500/20"
               >
-                <div className="flex items-center justify-center gap-[0.6rem] font-sans text-[1.3rem] font-medium">
-                  Switch to Arc
+                <div className="flex items-center justify-center gap-[0.6rem] font-sans text-[1.3rem] font-semibold">
+                  Switch to Arc Testnet
                 </div>
               </button>
-            )}
+            ) : null}
 
             <button
               type="button"

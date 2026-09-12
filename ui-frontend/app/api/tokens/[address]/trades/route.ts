@@ -13,7 +13,7 @@ export async function GET(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Invalid address" }, { status: 400 });
     }
     const url = new URL(req.url);
-    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 40)));
+    const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") || 100)));
     const { trades, source } = await resolveTrades(address, limit);
     return NextResponse.json({ ok: true, source, trades });
   } catch (error) {

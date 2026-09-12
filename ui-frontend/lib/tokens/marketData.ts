@@ -6,6 +6,7 @@ import {
   type PricePoint,
 } from "~~/lib/subgraph/client";
 import { getIndexedChartSeries, getIndexedTrades } from "~~/lib/tokens/tradeSync";
+import { EXPLORER_URL } from "~~/lib/reflow/provider";
 
 export type ChartSource = "subgraph" | "mongo" | "none";
 
@@ -43,17 +44,21 @@ export async function resolveTrades(tokenAddress: string, limit = 40) {
       if (trades.length > 0) {
         return {
           source: "subgraph" as const,
-          trades: trades.map(t => ({
-            id: t.id,
-            buy: t.isBuy,
-            trader: typeof t.trader === "string" ? t.trader : String(t.trader),
-            amountNative: Number(t.amountNative),
-            amountToken: Number(t.amountToken),
-            priceNative: Number(t.priceNative),
-            timestamp: new Date(Number(t.timestamp) * 1000).toISOString(),
-            txHash: t.txHash ? String(t.txHash) : t.id.split("-")[0] || "",
-            source: t.source,
-          })),
+          trades: trades.map(t => {
+            const txHash = t.txHash ? String(t.txHash) : t.id.includes("-") ? t.id.split("-")[0] : "";
+            return {
+              id: t.id,
+              buy: t.isBuy,
+              trader: typeof t.trader === "string" ? t.trader : String(t.trader),
+              amountNative: Number(t.amountNative),
+              amountToken: Number(t.amountToken),
+              priceNative: Number(t.priceNative),
+              timestamp: new Date(Number(t.timestamp) * 1000).toISOString(),
+              txHash,
+              txUrl: txHash ? `${EXPLORER_URL}/tx/${txHash}` : "",
+              source: t.source,
+            };
+          }),
         };
       }
     } catch {
@@ -63,7 +68,15 @@ export async function resolveTrades(tokenAddress: string, limit = 40) {
 
   try {
     const trades = await getIndexedTrades(tokenAddress, limit);
-    if (trades.length > 0) return { source: "mongo" as const, trades };
+    if (trades.length > 0) {
+      return {
+        source: "mongo" as const,
+        trades: trades.map(t => ({
+          ...t,
+          txUrl: t.txHash ? `${EXPLORER_URL}/tx/${t.txHash}` : "",
+        })),
+      };
+    }
   } catch {
     /* fall through */
   }

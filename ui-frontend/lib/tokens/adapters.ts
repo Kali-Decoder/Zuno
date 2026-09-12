@@ -88,6 +88,12 @@ export function apiToExploreToken(t: ApiToken): ExploreToken {
 }
 
 export function apiToGraduatedToken(t: ApiToken): GraduatedToken {
+  const isInactive = Boolean(
+    t.inactive ||
+    t.phase === "inactive" ||
+    t.vaultStatus === "Inactive" ||
+    t.recyclingEligible,
+  );
   return {
     id: asAddr(t.address),
     name: t.name,
@@ -96,10 +102,29 @@ export function apiToGraduatedToken(t: ApiToken): GraduatedToken {
     marketCapLabel: formatUsd(t.marketCapUsd),
     timeAgo: timeAgo(t.createdAt),
     showV2: true,
+    inactive: isInactive,
+    phase: t.phase || (isInactive ? "inactive" : "listed"),
   };
 }
 
 export function apiToCultToken(t: ApiToken): CultToken {
+  const isGraduated = Boolean(
+    t.graduated ||
+    t.isListing ||
+    Boolean(t.listedAt) ||
+    t.phase === "listed" ||
+    t.phase === "inactive" ||
+    t.phase === "voting" ||
+    t.phase === "recycling" ||
+    t.phase === "recycled" ||
+    (t.vaultStatus && t.vaultStatus !== "None"),
+  );
+  const isInactive = Boolean(
+    t.inactive ||
+    t.phase === "inactive" ||
+    t.vaultStatus === "Inactive" ||
+    t.recyclingEligible,
+  );
   return {
     id: asAddr(t.address),
     name: t.name,
@@ -107,7 +132,11 @@ export function apiToCultToken(t: ApiToken): CultToken {
     tokenCreator: t.creator || "",
     airdropContract: "",
     poolAddress: t.pair || "",
-    isGraduated: Boolean(t.graduated || t.isListing),
+    isGraduated,
+    inactive: isInactive,
+    phase: t.phase || (isInactive ? "inactive" : isGraduated ? "listed" : "bonding"),
+    recyclingEligible: t.recyclingEligible,
+    vaultStatus: t.vaultStatus,
     isWatchlisted: false,
     marketCap: t.marketCapUsd ?? 0,
     blockTimestamp: t.createdAt || new Date().toISOString(),

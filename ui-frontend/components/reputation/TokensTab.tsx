@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../common/Tabs";
 import CoinCard from "../home/DiscoverCoins/CoinCard";
 import ActiveTokenCard from "./ActiveTokenCard";
@@ -8,6 +8,7 @@ import UpcomingToken from "./UpcomingToken";
 import { TokenGridSkeleton } from "~~/components/common/TokenSkeleton";
 import { useApiTokens } from "~~/hooks/useApiTokens";
 import { apiToCultToken } from "~~/lib/tokens/adapters";
+import { cn } from "~~/lib/utils";
 import { StarIcon, TrophyOutlineIcon, ZapIcon } from "~~/icons/symbols";
 
 function isActiveListed(t: {
@@ -35,6 +36,16 @@ const TokensTab = () => {
   const active = all.filter(isActiveListed);
   const inactive = all.filter(t => t.phase === "inactive" || t.inactive);
   const voting = all.filter(t => t.phase === "voting" || t.proposal?.state === "Active");
+
+  const [graduatedFilter, setGraduatedFilter] = useState<"all" | "active" | "inactive">("all");
+  const inactiveGraduatedCount = graduated.filter(t => t.inactive).length;
+  const activeGraduatedCount = graduated.length - inactiveGraduatedCount;
+
+  const displayedGraduated = graduated.filter(t => {
+    if (graduatedFilter === "active") return !t.inactive;
+    if (graduatedFilter === "inactive") return Boolean(t.inactive);
+    return true;
+  });
 
   return (
     <Tabs defaultValue="active" className="grid w-full grid-cols-1 gap-[1.6rem] sm:grid-cols-[20%_1fr]">
@@ -133,28 +144,85 @@ const TokensTab = () => {
 
       <TabsContent value="graduated">
         <div className="space-y-[2.4rem]">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Live pools</h2>
-            <span className="text-[1rem] text-white/60">{loading ? "" : `${graduated.length} tokens`}</span>
+          <div className="flex flex-wrap items-center justify-between gap-[1rem]">
+            <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Graduated pools</h2>
+            <div className="flex items-center gap-[0.8rem] text-[1.1rem]">
+              <span className="text-white/60">
+                {loading ? "" : `${graduated.length} total`}
+              </span>
+              {inactiveGraduatedCount > 0 && !loading && (
+                <span className="rounded-full border border-orange-500/35 bg-orange-500/15 px-[0.7rem] py-[0.15rem] text-[1rem] font-medium text-orange-400">
+                  {inactiveGraduatedCount} inactive
+                </span>
+              )}
+            </div>
           </div>
           <div className="mb-[2rem] rounded-lg border border-green-500/20 bg-green-500/10 p-[1.5rem]">
-            <p className="mb-[0.5rem] font-medium text-green-400">DEX trading</p>
+            <p className="mb-[0.5rem] font-medium text-green-400">DEX trading & LP Vault</p>
             <p className="text-[0.9rem] text-white/80">
-              Graduated tokens trade via the router. LP sits in the recycling vault.
+              Graduated tokens trade via the router. LP sits in the recycling vault. Inactive pools with low volume display an Inactive tag and become eligible for community LP recycling.
             </p>
           </div>
+
+          {!loading && graduated.length > 0 && (
+            <div className="flex flex-wrap items-center gap-[0.6rem]">
+              <button
+                type="button"
+                onClick={() => setGraduatedFilter("all")}
+                className={cn(
+                  "rounded-full px-[1.2rem] py-[0.45rem] text-[1.15rem] font-medium transition",
+                  graduatedFilter === "all"
+                    ? "bg-white/15 text-white"
+                    : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80",
+                )}
+              >
+                All ({graduated.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setGraduatedFilter("active")}
+                className={cn(
+                  "rounded-full px-[1.2rem] py-[0.45rem] text-[1.15rem] font-medium transition",
+                  graduatedFilter === "active"
+                    ? "border border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
+                    : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80",
+                )}
+              >
+                Active ({activeGraduatedCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setGraduatedFilter("inactive")}
+                className={cn(
+                  "rounded-full px-[1.2rem] py-[0.45rem] text-[1.15rem] font-medium transition",
+                  graduatedFilter === "inactive"
+                    ? "border border-orange-500/30 bg-orange-500/20 text-orange-300"
+                    : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80",
+                )}
+              >
+                Inactive ({inactiveGraduatedCount})
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <TokenGridSkeleton count={6} variant="wide" />
           ) : (
             <>
               <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
-                {graduated.map(token => (
+                {displayedGraduated.map(token => (
                   <CoinCard className="mx-auto" key={token.id} token={token} stage="Live" />
                 ))}
               </div>
-              {graduated.length === 0 && (
+              {displayedGraduated.length === 0 && (
                 <div className="py-[4rem] text-center">
-                  <p className="text-[1.2rem] text-white/60">No graduated tokens yet</p>
+                  <p className="text-[1.2rem] text-white/60">
+                    {graduatedFilter === "inactive"
+                      ? "No inactive graduated tokens right now"
+                      : graduatedFilter === "active"
+                      ? "No active graduated tokens right now"
+                      : "No graduated tokens yet"}
+                  </p>
                 </div>
               )}
             </>

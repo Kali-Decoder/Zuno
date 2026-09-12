@@ -8,6 +8,8 @@ export type GraduatedToken = {
   timeAgo: string;
   showV2: boolean;
   partner?: boolean;
+  inactive?: boolean;
+  phase?: string;
 };
 
 /** Live data only — populated from Mongo/chain via useApiTokens. */

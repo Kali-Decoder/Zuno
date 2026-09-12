@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import WalletButton from "../wallet/WalletButton";
+import ChainSwitchButton from "../wallet/ChainSwitchButton";
 import { LogoLightTextSvg } from "~~/icons/logos";
 import { cn } from "~~/lib/utils";
 
@@ -172,7 +173,8 @@ const Navigation = () => {
             <NavPills showTourHint={showTourHint} />
           </div>
 
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-[0.8rem] sm:gap-[1rem]">
+            <ChainSwitchButton />
             <WalletButton />
           </div>
         </div>

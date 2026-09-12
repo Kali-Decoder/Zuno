@@ -17,10 +17,15 @@ export default function GraduatedTokenCard({ token }: { token: GraduatedToken })
             className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           />
-          <div className="absolute left-[0.8rem] top-[0.8rem] flex items-center gap-[0.5rem]">
+          <div className="absolute left-[0.8rem] top-[0.8rem] flex flex-wrap items-center gap-[0.5rem]">
             <span className="rounded-full bg-black/55 px-[0.85rem] py-[0.35rem] text-[1rem] font-medium text-white/85 backdrop-blur-sm">
               Graduated
             </span>
+            {(token.inactive || token.phase === "inactive") && (
+              <span className="rounded-full border border-orange-500/40 bg-orange-500/25 px-[0.85rem] py-[0.35rem] text-[1rem] font-medium text-orange-300 backdrop-blur-sm">
+                Inactive
+              </span>
+            )}
             {token.showV2 && (
               <span className="inline-flex size-[2.2rem] items-center justify-center rounded-full bg-[#2F80FF] text-[1rem] font-bold text-white">
                 V2

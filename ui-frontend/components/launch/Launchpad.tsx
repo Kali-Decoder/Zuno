@@ -305,21 +305,29 @@ export default function Launchpad() {
 
           <div className="flex flex-wrap items-center justify-end gap-[1.2rem] border-t border-white/10 pt-[0.8rem]">
             {isConnected ? (
-              <HoverButton disabled={submitting || !canLaunch} handleOnClick={launch}>
-                <span className="inline-flex items-center gap-[0.6rem]">
-                  {submitting ? (
-                    <>
-                      Launching
-                      <Spinner className="size-[1.4rem]" />
-                    </>
-                  ) : (
-                    <>
-                      Launch token
-                      <Rocket className="size-[1.4rem]" />
-                    </>
-                  )}
-                </span>
-              </HoverButton>
+              !wallet.isCorrectNetwork ? (
+                <HoverButton handleOnClick={() => void wallet.switchToArc()}>
+                  <span className="inline-flex items-center gap-[0.6rem]">
+                    Switch to Arc Testnet
+                  </span>
+                </HoverButton>
+              ) : (
+                <HoverButton disabled={submitting || !canLaunch} handleOnClick={launch}>
+                  <span className="inline-flex items-center gap-[0.6rem]">
+                    {submitting ? (
+                      <>
+                        Launching
+                        <Spinner className="size-[1.4rem]" />
+                      </>
+                    ) : (
+                      <>
+                        Launch token
+                        <Rocket className="size-[1.4rem]" />
+                      </>
+                    )}
+                  </span>
+                </HoverButton>
+              )
             ) : (
               <ConnectWalletButton className="hover:bg-accent-600">Connect to launch</ConnectWalletButton>
             )}
