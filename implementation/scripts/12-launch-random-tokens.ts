@@ -12,7 +12,7 @@
  *   npx hardhat run scripts/12-launch-random-tokens.ts --network arcTestnet
  */
 import "dotenv/config";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
@@ -69,16 +69,36 @@ const NOUNS = [
   "Voxel",
 ];
 
-/** Coin art from ui-frontend/public/coins */
-const IMAGES = [
-  "/coins/token1.webp",
-  "/coins/token2.jpeg",
-  "/coins/token3.png",
-  "/coins/token4.jpeg",
-  "/coins/token5.avif",
-];
+/** Avatars from avatars/png or ui-frontend/public/avatars */
+const AVATARS_DIR = join(__dirname, "../../avatars/png");
+const UI_AVATARS_DIR = join(__dirname, "../../ui-frontend/public/avatars");
 
-const COUNT = Math.max(1, Number(process.env.LAUNCH_COUNT || IMAGES.length));
+function loadAvatarImages(): string[] {
+  const dir = existsSync(AVATARS_DIR)
+    ? AVATARS_DIR
+    : existsSync(UI_AVATARS_DIR)
+      ? UI_AVATARS_DIR
+      : null;
+  if (!dir) return [];
+  return readdirSync(dir)
+    .filter(f => f.endsWith(".png") || f.endsWith(".webp") || f.endsWith(".jpeg") || f.endsWith(".jpg"))
+    .sort()
+    .map(f => `/avatars/${f}`);
+}
+
+const AVATAR_IMAGES = loadAvatarImages();
+const IMAGES =
+  AVATAR_IMAGES.length > 0
+    ? AVATAR_IMAGES
+    : [
+        "/coins/token1.webp",
+        "/coins/token2.jpeg",
+        "/coins/token3.png",
+        "/coins/token4.jpeg",
+        "/coins/token5.avif",
+      ];
+
+const COUNT = Math.max(1, Number(process.env.LAUNCH_COUNT || 10));
 
 const CORE_ABI = [
   "function createCurve(address creator, string name, string symbol, string tokenURI, uint256 amountIn, uint256 fee) payable returns (address curve, address token, uint256 virtualNative, uint256 virtualToken, uint256 amountOut)",
@@ -105,14 +125,25 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j]!, copy[i]!];
+  }
+  return copy;
+}
+
+const SHUFFLED_IMAGES = shuffle(IMAGES);
+
 function randomTokenMeta(i: number) {
-  const name = `${pick(ADJECTIVES)}${pick(NOUNS)}${i + 1}`;
+  const name = `${pick(ADJECTIVES)}${pick(NOUNS)}${Math.floor(Math.random() * 900 + 100)}`;
   const symbol = name
     .replace(/[^a-zA-Z]/g, "")
     .slice(0, 6)
     .toUpperCase();
-  // Cycle through public coin images so each launch uses the artwork set
-  const imageUrl = IMAGES[i % IMAGES.length]!;
+  // Cycle through shuffled avatars so each launch uses a unique avatar artwork
+  const imageUrl = SHUFFLED_IMAGES[i % SHUFFLED_IMAGES.length]!;
   const description = `${name} — ZUNO bonding-curve launch #${i + 1}`;
   return { name, symbol, imageUrl, description };
 }

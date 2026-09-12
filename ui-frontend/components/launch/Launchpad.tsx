@@ -20,6 +20,10 @@ const PRESET_IMAGES = [
   { src: "/coins/token3.png", label: "Jade" },
   { src: "/coins/token4.jpeg", label: "Otter" },
   { src: "/coins/token5.avif", label: "Prime" },
+  { src: "/avatars/memo_1.png", label: "Memo" },
+  { src: "/avatars/notion_1.png", label: "Notion" },
+  { src: "/avatars/vibrent_1.png", label: "Vibrent" },
+  { src: "/avatars/bluey_1.png", label: "Bluey" },
   { src: "/zuno-logo.png", label: "ZUNO" },
 ];
 
