@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 SUBGRAPH_URL="${SUBGRAPH_URL:-https://api.studio.thegraph.com/query/1760143/reflow/version/latest}"
-VERSION_LABEL="${VERSION_LABEL:-v0.0.3}"
+VERSION_LABEL="${VERSION_LABEL:-v0.0.4}"
 
 echo "==> codegen + build (arc-testnet)"
 npx graph codegen

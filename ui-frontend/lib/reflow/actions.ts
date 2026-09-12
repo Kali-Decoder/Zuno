@@ -114,6 +114,15 @@ export async function buyToken(params: {
   }
 
   const factory = new ethers.Contract(REFLOW.bondingCurveFactory, FACTORY_ABI, getPublicProvider());
+  try {
+    const curve = await factory.getCurve(params.tokenAddress);
+    if (!curve || curve === ethers.ZeroAddress) {
+      throw new Error("This token belongs to an earlier deployment. Please select one of the newly launched tokens.");
+    }
+  } catch (e: any) {
+    if (e.message?.includes("earlier deployment")) throw e;
+  }
+
   let feeDen = 1n;
   let feeNum = 100n;
   try {

@@ -6,7 +6,7 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "auth": "graph auth",
-    "deploy": "graph deploy reflow --version-label v0.0.3 -g https://api.studio.thegraph.com/deploy/",
+    "deploy": "graph deploy reflow --version-label v0.0.4 -g https://api.studio.thegraph.com/deploy/",
     "deploy:test": "bash scripts/deploy-and-test.sh",
     "test:query": "curl -sS -X POST \"${SUBGRAPH_URL:-https://api.studio.thegraph.com/query/1760143/reflow/version/latest}\" -H 'content-type: application/json' -d '{\"query\":\"{ _meta { block { number } deployment hasIndexingErrors } tokens(first:5){ id name symbol tradeCount } trades(first:5){ id isBuy priceNative } }\"}' | python3 -m json.tool"
   },

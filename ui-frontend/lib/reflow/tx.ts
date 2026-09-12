@@ -24,7 +24,19 @@ export async function sendContractTx(
   overrides: { value?: bigint } = {},
 ) {
   const from = await signer.getAddress();
-  const reader = new ethers.Contract(address, abi, getFreshPublicProvider());
+  const provider = getFreshPublicProvider();
+
+  // Pre-flight check: ensure wallet has enough native balance (USDC on Arc)
+  if (overrides.value != null && overrides.value > 0n) {
+    const balance = await provider.getBalance(from);
+    if (balance < overrides.value) {
+      const balStr = Number(ethers.formatEther(balance)).toFixed(4);
+      const reqStr = Number(ethers.formatEther(overrides.value)).toFixed(4);
+      throw new Error(`Insufficient USDC balance. You have ${balStr} USDC, but this ${method} requires ${reqStr} USDC.`);
+    }
+  }
+
+  const reader = new ethers.Contract(address, abi, provider);
   const writer = new ethers.Contract(address, abi, signer);
   const fn = reader.getFunction(method);
   const callOverrides = { ...overrides, from };
@@ -61,7 +73,7 @@ export function decodeCallError(error: unknown, method = "transaction") {
   }
   const raw = txError(error);
   if (raw.toLowerCase().includes("missing revert data")) {
-    return `${method} needs more gas than the wallet estimated. Retry — stay on Arc Testnet and keep USDC for gas.`;
+    return `${method} failed: check your USDC balance on Arc Testnet, or ensure you are trading a newly launched token.`;
   }
   return raw;
 }

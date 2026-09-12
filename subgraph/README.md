@@ -8,8 +8,8 @@ Indexes bonding-curve **Create / Buy / Sell / Listing** and DEX **Swap** on **ar
 |-------|-------|
 | Graph network | `arc-testnet` |
 | Chain ID | `5042002` |
-| Factory | `0x8133D59B8b59C1210cf6B28e7833810aA691A33a` |
-| startBlock | `61615630` |
+| Factory | `0x3f8bBf8B7c04e721Feb9bfB95Ebe452965a2D1eb` |
+| startBlock | `61783000` |
 
 ## Install Graph CLI
 

@@ -6,9 +6,9 @@ dataSources:
     name: BondingCurveFactory
     network: arc-testnet
     source:
-      address: "0x8133D59B8b59C1210cf6B28e7833810aA691A33a"
+      address: "0x3f8bBf8B7c04e721Feb9bfB95Ebe452965a2D1eb"
       abi: BondingCurveFactory
-      startBlock: 61615630
+      startBlock: 61783000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
