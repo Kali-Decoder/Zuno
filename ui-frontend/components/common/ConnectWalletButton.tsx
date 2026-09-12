@@ -1,15 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Spinner } from "./Spinner";
-import {
-  ConnectorAlreadyConnectedError,
-  useAccount,
-  useConnect,
-  useDisconnect,
-  useSwitchChain,
-} from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
+import { useAccount, useSwitchChain } from "wagmi";
 import toast from "react-hot-toast";
+import { Spinner } from "./Spinner";
 import { arcTestnet } from "~~/config/chains";
 import { cn } from "~~/lib/utils";
 
@@ -30,20 +25,6 @@ function labelFromChildren(children: React.ReactNode) {
   return children;
 }
 
-function pickConnector(connectors: ReturnType<typeof useConnect>["connectors"]) {
-  return (
-    connectors.find(c => c.id === "injected") ??
-    connectors.find(c => c.type === "injected") ??
-    connectors[0]
-  );
-}
-
-function shouldRetryConnect(err: unknown): boolean {
-  if (err instanceof ConnectorAlreadyConnectedError) return true;
-  const msg = err instanceof Error ? err.message : String(err);
-  return /already connected|connection already|resource unavailable|-32002/i.test(msg);
-}
-
 const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
   className,
   children = "Connect",
@@ -53,59 +34,18 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
   isLoading = false,
   ...props
 }) => {
-  const { isConnected, status, chainId } = useAccount();
-  const { connectAsync, connectors, isPending, reset } = useConnect();
-  const { disconnectAsync, isPending: isDisconnecting } = useDisconnect();
+  const { ready, authenticated, login } = usePrivy();
+  const { isConnected, chainId } = useAccount();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const [busyLocal, setBusyLocal] = useState(false);
-  /** Avoid SSR/client mismatch while wagmi restores a session. */
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const connector = pickConnector(connectors);
-  const reconnecting = status === "connecting" || status === "reconnecting";
-  const busy =
-    busyLocal ||
-    isLoading ||
-    isPending ||
-    isDisconnecting ||
-    isSwitching ||
-    (mounted && reconnecting);
-
-  const wrongNetwork = mounted && isConnected && chainId !== arcTestnet.id;
-
-  const connectWallet = async () => {
-    if (!connector) {
-      toast.error("No browser wallet found. Install MetaMask or another injected wallet.");
-      return;
-    }
-
-    setBusyLocal(true);
-    reset();
-    try {
-      await connectAsync({ connector, chainId: arcTestnet.id });
-      toast.success("Wallet connected");
-    } catch (err) {
-      if (shouldRetryConnect(err)) {
-        try {
-          await disconnectAsync().catch(() => undefined);
-          reset();
-          await connectAsync({ connector, chainId: arcTestnet.id });
-          toast.success("Wallet connected");
-          return;
-        } catch (retryErr) {
-          toast.error(retryErr instanceof Error ? retryErr.message : "Failed to connect");
-          return;
-        }
-      }
-      toast.error(err instanceof Error ? err.message : "Failed to connect");
-    } finally {
-      setBusyLocal(false);
-    }
-  };
+  const wrongNetwork = mounted && authenticated && isConnected && chainId !== arcTestnet.id;
+  const busy = busyLocal || isLoading || isSwitching || (mounted && !ready);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -113,18 +53,28 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
     if (busy) return;
 
     if (wrongNetwork) {
-      void switchChainAsync({ chainId: arcTestnet.id }).catch(err => {
-        toast.error(err instanceof Error ? err.message : "Network switch failed");
-      });
+      setBusyLocal(true);
+      void switchChainAsync({ chainId: arcTestnet.id })
+        .catch(err => {
+          toast.error(err instanceof Error ? err.message : "Network switch failed");
+        })
+        .finally(() => setBusyLocal(false));
       onClick?.(e);
       return;
     }
 
-    void connectWallet();
+    setBusyLocal(true);
+    try {
+      login();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to open login");
+    } finally {
+      // Privy modal owns the flow; clear local busy shortly after open
+      setTimeout(() => setBusyLocal(false), 400);
+    }
     onClick?.(e);
   };
 
-  // Stable first paint: always "Connect" until mounted so SSR matches hydration.
   if (!mounted) {
     return (
       <button type={type} {...props} disabled className={cn(baseClass, className)} aria-busy={false}>
@@ -137,7 +87,7 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
     <button
       type={type}
       {...props}
-      disabled={busy || (!connector && !wrongNetwork)}
+      disabled={busy}
       onClick={handleClick}
       aria-busy={busy}
       className={cn(baseClass, className)}

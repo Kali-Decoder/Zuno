@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useMemo } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useChainId } from "wagmi";
 import { arcTestnet } from "~~/config/chains";
 
@@ -18,10 +19,12 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const { ready: privyReady, authenticated } = usePrivy();
   const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
 
-  const ready = status !== "connecting" && status !== "reconnecting";
+  const ready =
+    privyReady && status !== "connecting" && status !== "reconnecting";
   const isValidChain = useMemo(() => {
     if (!isConnected) return true;
     return chainId === arcTestnet.id;
@@ -37,7 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         address,
         ready,
         isLoading: !ready,
-        isConnected: Boolean(isConnected && address),
+        isConnected: Boolean(authenticated && isConnected && address),
         isValidChain,
       }}
     >

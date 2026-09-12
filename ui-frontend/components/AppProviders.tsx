@@ -1,6 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
+import { PrivyProvider, type PrivyClientConfig } from "@privy-io/react-auth";
+import { WagmiProvider } from "@privy-io/wagmi";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./AuthProvider";
 import Noise from "./common/Noise";
 import { TooltipProvider } from "./common/ToolTip";
@@ -8,16 +13,32 @@ import TourComponent from "./onboarding/TourComponent";
 import { TourProvider } from "./onboarding/TourContext";
 import TourTrigger from "./onboarding/TourTrigger";
 import WelcomeBanner from "./onboarding/WelcomeBanner";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
-import { Toaster } from "react-hot-toast";
-import { WagmiProvider } from "wagmi";
+import { arcTestnet } from "~~/config/chains";
 import { wagmiConfig } from "~~/config/wagmi";
 import { getQueryClient } from "~~/utils/getQueryClient";
 
 const queryClient = getQueryClient();
 
-function AppShell({ children }: { children: React.ReactNode }) {
+const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
+
+const privyConfig: PrivyClientConfig = {
+  loginMethods: ["wallet", "email", "google"],
+  appearance: {
+    theme: "dark",
+    accentColor: "#C2FF2C",
+    logo: "/zuno-logo.png",
+    walletList: ["detected_wallets", "metamask", "rabby_wallet", "coinbase_wallet", "wallet_connect"],
+  },
+  defaultChain: arcTestnet,
+  supportedChains: [arcTestnet],
+  embeddedWallets: {
+    ethereum: {
+      createOnLogin: "users-without-wallets",
+    },
+  },
+};
+
+function AppShell({ children }: { children: ReactNode }) {
   return (
     <Suspense fallback={null}>
       <AuthProvider>
@@ -50,12 +71,18 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const AppProviders = ({ children }: { children: React.ReactNode }) => {
+export const AppProviders = ({ children }: { children: ReactNode }) => {
+  if (!privyAppId) {
+    console.warn("NEXT_PUBLIC_PRIVY_APP_ID is missing — wallet login will not work.");
+  }
+
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <PrivyProvider appId={privyAppId} config={privyConfig}>
       <QueryClientProvider client={queryClient}>
-        <AppShell>{children}</AppShell>
+        <WagmiProvider config={wagmiConfig}>
+          <AppShell>{children}</AppShell>
+        </WagmiProvider>
       </QueryClientProvider>
-    </WagmiProvider>
+    </PrivyProvider>
   );
 };

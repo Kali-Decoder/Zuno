@@ -1,40 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { ethers } from "ethers";
 import toast from "react-hot-toast";
-import {
-  ConnectorAlreadyConnectedError,
-  useAccount,
-  useChainId,
-  useConnect,
-  useDisconnect,
-  useSwitchChain,
-} from "wagmi";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { arcTestnet } from "~~/config/chains";
 import { ZERO } from "~~/lib/reflow/format";
 import { getFreshPublicProvider } from "~~/lib/reflow/provider";
 
-function pickConnector(connectors: ReturnType<typeof useConnect>["connectors"]) {
-  return (
-    connectors.find(c => c.id === "injected") ??
-    connectors.find(c => c.type === "injected") ??
-    connectors[0]
-  );
-}
-
-function shouldRetryConnect(err: unknown): boolean {
-  if (err instanceof ConnectorAlreadyConnectedError) return true;
-  const msg = err instanceof Error ? err.message : String(err);
-  return /already connected|connection already|resource unavailable|-32002/i.test(msg);
-}
-
-/** Wagmi injected wallet helper for contract writes (ethers signer). */
+/** Privy + wagmi helper for contract writes (ethers signer). */
 export function useReflowWallet() {
+  const { ready: privyReady, authenticated, login } = usePrivy();
+  const { wallets } = useWallets();
   const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
-  const { connectAsync, connectors, reset } = useConnect();
-  const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nativeBalance, setNativeBalance] = useState(ZERO);
@@ -42,7 +22,8 @@ export function useReflowWallet() {
   const account = (address || "") as string;
   const isCorrectNetwork = chainId === arcTestnet.id;
   const explorerBase = arcTestnet.blockExplorers?.default.url ?? "https://testnet.arcscan.app";
-  const ready = status !== "connecting" && status !== "reconnecting";
+  const ready =
+    privyReady && status !== "connecting" && status !== "reconnecting";
 
   const refreshBalance = useCallback(
     async (addr = account) => {
@@ -61,29 +42,12 @@ export function useReflowWallet() {
   );
 
   const connectWallet = useCallback(async () => {
-    const connector = pickConnector(connectors);
-    if (!connector) {
-      toast.error("No browser wallet found.");
-      return;
-    }
-    reset();
     try {
-      await connectAsync({ connector, chainId: arcTestnet.id });
+      login();
     } catch (err) {
-      if (shouldRetryConnect(err)) {
-        try {
-          await disconnectAsync().catch(() => undefined);
-          reset();
-          await connectAsync({ connector, chainId: arcTestnet.id });
-          return;
-        } catch (retryErr) {
-          toast.error(retryErr instanceof Error ? retryErr.message : "Failed to connect");
-          return;
-        }
-      }
-      toast.error(err instanceof Error ? err.message : "Failed to connect");
+      toast.error(err instanceof Error ? err.message : "Failed to open login");
     }
-  }, [connectors, connectAsync, disconnectAsync, reset]);
+  }, [login]);
 
   const switchToArc = useCallback(async () => {
     try {
@@ -97,10 +61,16 @@ export function useReflowWallet() {
   const switchToMonad = switchToArc;
 
   const getProvider = useCallback(async () => {
+    const active =
+      wallets.find(w => w.address?.toLowerCase() === account.toLowerCase()) ?? wallets[0];
+    if (active) {
+      const eip1193 = await active.getEthereumProvider();
+      return new ethers.BrowserProvider(eip1193);
+    }
     const ethereum = (globalThis as { ethereum?: ethers.Eip1193Provider }).ethereum;
-    if (!ethereum) throw new Error("No browser wallet found.");
+    if (!ethereum) throw new Error("No wallet provider found.");
     return new ethers.BrowserProvider(ethereum);
-  }, []);
+  }, [wallets, account]);
 
   const runWrite = useCallback(
     async (fn: (signer: ethers.Signer) => Promise<void>) => {
@@ -108,7 +78,7 @@ export function useReflowWallet() {
         toast.error("Wallet not ready.");
         return false;
       }
-      if (!isConnected || !account) {
+      if (!authenticated || !isConnected || !account) {
         toast.error("Connect your wallet first.");
         await connectWallet();
         return false;
@@ -132,6 +102,7 @@ export function useReflowWallet() {
     },
     [
       ready,
+      authenticated,
       isConnected,
       account,
       isCorrectNetwork,
@@ -156,7 +127,7 @@ export function useReflowWallet() {
     account,
     chainId,
     nativeBalance,
-    isConnected: Boolean(isConnected && account),
+    isConnected: Boolean(authenticated && isConnected && account),
     isCorrectNetwork,
     isSubmitting,
     explorerBase,

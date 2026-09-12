@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePrivy } from "@privy-io/react-auth";
+import { ChevronDown, Unplug, UserRound } from "lucide-react";
+import { useAccount, useBalance, useSwitchChain } from "wagmi";
 import ConnectWalletButton from "../common/ConnectWalletButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../common/DropdownMenu";
 import CopyAddressToClipboard from "../common/CopyAddressToClipboard";
 import { useAuth } from "../AuthProvider";
-import { ChevronDown, Unplug, UserRound } from "lucide-react";
-import { useAccount, useBalance, useDisconnect, useSwitchChain } from "wagmi";
 import { arcTestnet } from "~~/config/chains";
 
 function WalletButtonInner() {
   const { isValidChain } = useAuth();
+  const { ready, authenticated, logout } = usePrivy();
   const { address, isConnected } = useAccount();
-  const { disconnectAsync } = useDisconnect();
   const { data: balance } = useBalance({
     address,
     chainId: arcTestnet.id,
@@ -29,8 +30,7 @@ function WalletButtonInner() {
   const nativeBalance = balance ? `${parseFloat(balance.formatted).toFixed(2)} ${balance.symbol}` : "--";
   const networkName = isValidChain ? "Arc Testnet" : "Wrong network";
 
-  // Match SSR: show Connect until client has mounted (avoids Connect vs connected UI mismatch).
-  if (!mounted || !isConnected || !address) {
+  if (!mounted || !ready || !authenticated || !isConnected || !address) {
     return <ConnectWalletButton />;
   }
 
@@ -99,7 +99,7 @@ function WalletButtonInner() {
 
             <button
               type="button"
-              onClick={() => void disconnectAsync()}
+              onClick={() => void logout()}
               className="group w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-[1rem] py-[0.85rem] text-white/70 transition-all duration-200 hover:border-red-500/30 hover:bg-white/[0.05] hover:text-red-400"
             >
               <div className="flex items-center justify-center gap-[0.6rem] font-sans text-[1.3rem] font-medium">
@@ -114,7 +114,7 @@ function WalletButtonInner() {
   );
 }
 
-/** Nav wallet control — injected MetaMask/browser connect (same pattern as frontend ConnectButton). */
+/** Nav wallet control — Privy login (email / social / external wallets). */
 export const WalletButton = () => <WalletButtonInner />;
 
 export default WalletButton;

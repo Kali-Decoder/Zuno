@@ -8,7 +8,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  transpilePackages: [],
+  transpilePackages: ["@privy-io/react-auth", "@privy-io/wagmi"],
   images: {
     remotePatterns: [
       {
@@ -31,6 +31,10 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       "@react-native-async-storage/async-storage": empty,
+      "@solana-program/system": empty,
+      "@farcaster/mini-app-solana": empty,
+      "@solana/kit": empty,
+      "@solana/web3.js": empty,
     };
     // Optional Coinbase x402 deps pulled transitively by wagmi — unused
     config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^@x402(\/.*)?$/, empty));
