@@ -12,7 +12,7 @@ contract RecyclingGovernor is Ownable, ReentrancyGuard, IRecyclingGovernor {
     IActivityMonitor public activityMonitor;
     ILPRecyclingVault public vault;
 
-    uint256 public votingPeriod = 3 days;
+    uint256 public votingPeriod = 5 minutes;
     uint256 public proposalCount;
     uint256 public minVoteStake = 0.01 ether;
 

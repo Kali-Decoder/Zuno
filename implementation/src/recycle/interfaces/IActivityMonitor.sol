@@ -28,4 +28,9 @@ interface IActivityMonitor {
     function getActivity(address token) external view returns (PoolActivity memory);
 
     function isRecyclingEligible(address token) external view returns (bool);
+
+    function defaultConfig()
+        external
+        view
+        returns (uint256 inactivityPeriod, uint256 minVolumeNative, uint256 minTxCount);
 }

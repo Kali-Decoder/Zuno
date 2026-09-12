@@ -6,6 +6,7 @@ import HoverButton from "~~/components/common/HoverButton";
 import { Spinner } from "~~/components/common/Spinner";
 import { PanelSkeleton } from "~~/components/common/TokenSkeleton";
 import {
+  configureTokenActivity,
   derivePhaseFromLifecycle,
   executeProposal,
   getTokenLifecycle,
@@ -93,6 +94,12 @@ export default function LifecyclePanel({
   const [selected, setSelected] = useState<string[]>([]);
   const [voteCandidate, setVoteCandidate] = useState("");
   const [stake, setStake] = useState("0.01");
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const refresh = async () => {
     setLoading(true);
@@ -156,6 +163,11 @@ export default function LifecyclePanel({
   const phase = derivePhaseFromLifecycle(life);
   const copy = PHASE_COPY[phase] || PHASE_COPY.bonding;
 
+  const inactivityPeriod = life.defaultInactivityPeriod || 300;
+  const elapsed = life.windowStartedAt ? Math.max(0, nowSec - life.windowStartedAt) : 0;
+  const inactivityRemaining = Math.max(0, inactivityPeriod - elapsed);
+  const voteRemaining = life.proposalEndTime ? Math.max(0, life.proposalEndTime - nowSec) : 0;
+
   const toggleCandidate = (addr: string) => {
     setSelected(prev => (prev.includes(addr) ? prev.filter(a => a !== addr) : [...prev, addr].slice(0, 5)));
   };
@@ -214,9 +226,11 @@ export default function LifecyclePanel({
               ? "Eligible"
               : life.inactive
                 ? "Inactive"
-                : life.txCountInWindow > 0
-                  ? `${life.txCountInWindow} txs`
-                  : "Active"
+                : phase === "listed" && inactivityRemaining > 0
+                  ? `${Math.floor(inactivityRemaining / 60)}m ${inactivityRemaining % 60}s left`
+                  : life.txCountInWindow > 0
+                    ? `${life.txCountInWindow} txs`
+                    : "Active"
           }
         />
       </div>
@@ -250,18 +264,68 @@ export default function LifecyclePanel({
         )}
 
         {canOperate && phase === "listed" && (
-          <HoverButton
-            className="w-full sm:w-auto"
-            handleOnClick={() =>
-              void withSigner("Marked inactive", async signer => {
-                await markTokenInactive({ signer, tokenAddress });
-              })
-            }
-          >
-            <span className="inline-flex items-center gap-[0.6rem]">
-              Mark inactive {busy && <Spinner />}
-            </span>
-          </HoverButton>
+          <div className="space-y-[0.8rem]">
+            {life.windowStartedAt > 0 && !life.recyclingEligible && !life.inactive && (
+              <div className="flex flex-wrap items-center justify-between gap-[0.8rem] rounded-[1.2rem] bg-white/[0.03] p-[1.2rem] text-[1.15rem]">
+                <div>
+                  <p className="text-white/60">
+                    Inactivity evaluation window:{" "}
+                    <span className="font-mono font-medium text-white">
+                      {Math.floor(inactivityPeriod / 60)}m {inactivityPeriod % 60 > 0 ? `${inactivityPeriod % 60}s` : ""}
+                    </span>
+                  </p>
+                  <p className="mt-[0.2rem] text-white/40">
+                    {inactivityRemaining > 0 ? (
+                      <>
+                        Remaining before eligible:{" "}
+                        <span className="font-mono font-medium text-amber-400">
+                          {Math.floor(inactivityRemaining / 60)}m {inactivityRemaining % 60}s
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-medium text-emerald-400">
+                        Inactivity window elapsed. Ready to mark inactive!
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {inactivityRemaining > 60 && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void withSigner("Configured 60s demo window", async signer => {
+                        await configureTokenActivity({
+                          signer,
+                          tokenAddress,
+                          inactivityPeriodSeconds: 60,
+                        });
+                      })
+                    }
+                    className="rounded-full border border-white/10 bg-white/5 px-[1.1rem] py-[0.5rem] text-[1.1rem] text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    Set 60s demo window
+                  </button>
+                )}
+              </div>
+            )}
+            <HoverButton
+              className="w-full sm:w-auto"
+              handleOnClick={() => {
+                if (inactivityRemaining > 0 && !life.recyclingEligible) {
+                  toast.error(`Inactivity window has ${inactivityRemaining}s remaining.`);
+                  return;
+                }
+                void withSigner("Marked inactive", async signer => {
+                  await markTokenInactive({ signer, tokenAddress });
+                });
+              }}
+            >
+              <span className="inline-flex items-center gap-[0.6rem]">
+                Mark inactive {busy && <Spinner />}
+              </span>
+            </HoverButton>
+          </div>
         )}
 
         {canOperate && (phase === "inactive" || (life.recyclingEligible && !life.proposalId)) && (
@@ -318,6 +382,20 @@ export default function LifecyclePanel({
 
             {life.proposalState === "Active" && (
               <>
+                <div className="flex items-center justify-between text-[1.15rem] text-white/40">
+                  <span>Voting window (5m demo)</span>
+                  {voteRemaining > 0 ? (
+                    <span>
+                      Ends in{" "}
+                      <span className="font-mono font-medium text-amber-400">
+                        {Math.floor(voteRemaining / 60)}m {voteRemaining % 60}s
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400">Voting concluded. Ready to execute!</span>
+                  )}
+                </div>
+
                 <div className="flex flex-col gap-[0.5rem]">
                   {life.proposalCandidates.map(addr => (
                     <button

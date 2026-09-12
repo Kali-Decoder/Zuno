@@ -250,6 +250,23 @@ export async function markTokenInactive(params: { signer: ethers.Signer; tokenAd
   await sendContractTx(params.signer, REFLOW.lpVault, VAULT_ABI, "markInactive", [params.tokenAddress]);
 }
 
+export async function configureTokenActivity(params: {
+  signer: ethers.Signer;
+  tokenAddress: string;
+  inactivityPeriodSeconds?: number;
+  minVolumeNative?: string;
+  minTxCount?: number;
+}) {
+  const period = BigInt(params.inactivityPeriodSeconds ?? 300);
+  const minVol = params.minVolumeNative ? ethers.parseEther(params.minVolumeNative) : ethers.parseEther("1");
+  const minTx = BigInt(params.minTxCount ?? 5);
+
+  return sendContractTx(params.signer, REFLOW.activityMonitor, ACTIVITY_MONITOR_ABI, "configure", [
+    params.tokenAddress,
+    [period, minVol, minTx],
+  ]);
+}
+
 export async function proposeRecycle(params: {
   signer: ethers.Signer;
   deadToken: string;
@@ -445,6 +462,8 @@ export type TokenLifecycle = {
   volumeNativeInWindow: string;
   txCountInWindow: number;
   lastSwapAt: number;
+  windowStartedAt: number;
+  defaultInactivityPeriod: number;
   proposalId: number | null;
   proposalState: string | null;
   proposalCandidates: string[];
@@ -470,6 +489,8 @@ const emptyLifecycle = (token: string): TokenLifecycle => ({
   volumeNativeInWindow: "0",
   txCountInWindow: 0,
   lastSwapAt: 0,
+  windowStartedAt: 0,
+  defaultInactivityPeriod: 300,
   proposalId: null,
   proposalState: null,
   proposalCandidates: [],
@@ -515,12 +536,19 @@ export async function getTokenLifecycle(tokenAddress: string): Promise<TokenLife
 
   try {
     const monitor = new ethers.Contract(REFLOW.activityMonitor, ACTIVITY_MONITOR_ABI, provider);
-    const activity = await monitor.getActivity(tokenAddress);
+    const [activity, defCfg] = await Promise.all([
+      monitor.getActivity(tokenAddress),
+      monitor.defaultConfig().catch(() => null),
+    ]);
     base.inactive = Boolean(activity.inactive ?? activity[4]);
     base.recyclingEligible = Boolean(activity.recyclingEligible ?? activity[5]);
     base.volumeNativeInWindow = String(activity.volumeNativeInWindow ?? activity[2] ?? 0n);
     base.txCountInWindow = Number(activity.txCountInWindow ?? activity[3] ?? 0);
     base.lastSwapAt = Number(activity.lastSwapAt ?? activity[0] ?? 0);
+    base.windowStartedAt = Number(activity.windowStartedAt ?? activity[1] ?? 0);
+    if (defCfg) {
+      base.defaultInactivityPeriod = Number(defCfg[0] ?? defCfg.inactivityPeriod ?? 300);
+    }
   } catch {
     /* activity optional */
   }

@@ -34,7 +34,7 @@ contract ActivityMonitor is Ownable, ReentrancyGuard, IActivityMonitor {
     }
 
     constructor() Ownable(msg.sender) {
-        defaultConfig = ActivityConfig({inactivityPeriod: 7 days, minVolumeNative: 1 ether, minTxCount: 10});
+        defaultConfig = ActivityConfig({inactivityPeriod: 5 minutes, minVolumeNative: 1 ether, minTxCount: 5});
     }
 
     function setVault(address v) external onlyOwner {

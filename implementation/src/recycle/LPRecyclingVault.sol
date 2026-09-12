@@ -86,9 +86,11 @@ contract LPRecyclingVault is Ownable, ReentrancyGuard, ILPRecyclingVault {
         if (isNew) allTokens.push(token);
 
         if (address(activityMonitor) != address(0)) {
+            (uint256 period, uint256 minVol, uint256 minTx) = activityMonitor.defaultConfig();
+            if (period == 0) period = 5 minutes;
             activityMonitor.configure(
                 token,
-                IActivityMonitor.ActivityConfig({inactivityPeriod: 7 days, minVolumeNative: 1 ether, minTxCount: 10})
+                IActivityMonitor.ActivityConfig({inactivityPeriod: period, minVolumeNative: minVol, minTxCount: minTx})
             );
         }
 

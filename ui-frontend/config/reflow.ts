@@ -126,6 +126,9 @@ export const ACTIVITY_MONITOR_ABI = [
   "function evaluateInactivity(address token) returns (bool)",
   "function getActivity(address token) view returns (tuple(uint256 lastSwapAt, uint256 windowStartedAt, uint256 volumeNativeInWindow, uint256 txCountInWindow, bool inactive, bool recyclingEligible))",
   "function isRecyclingEligible(address token) view returns (bool)",
+  "function configure(address token, tuple(uint256 inactivityPeriod, uint256 minVolumeNative, uint256 minTxCount) config)",
+  "function defaultConfig() view returns (tuple(uint256 inactivityPeriod, uint256 minVolumeNative, uint256 minTxCount))",
+  "function setDefaultConfig(tuple(uint256 inactivityPeriod, uint256 minVolumeNative, uint256 minTxCount) config)",
 ] as const;
 
 export const GOVERNOR_ABI = [
