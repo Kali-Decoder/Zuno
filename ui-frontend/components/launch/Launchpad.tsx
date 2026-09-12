@@ -270,7 +270,10 @@ export default function Launchpad() {
             </Field>
           </div>
 
-          <Field label="Seed buy (USDC)" hint="Optional first buy when the curve is created. Trade fee ~1%.">
+          <Field
+            label="Seed buy (USDC)"
+            hint="Optional first buy when the curve is created. Seed tokens are time-locked to protect investors from dev dumps."
+          >
             <input
               className={inputClass}
               type="number"
@@ -284,8 +287,8 @@ export default function Launchpad() {
 
           <div className="grid gap-[1.2rem] sm:grid-cols-3">
             {[
-              { label: "Listing target", value: "~800M tokens sold" },
-              { label: "Deploy fee", value: "0 USDC" },
+              { label: "Listing target", value: "600M sold (60%)" },
+              { label: "DEX LP Reserve", value: "400M tokens (40%)" },
               { label: "Trading fee", value: "1%" },
             ].map(stat => (
               <div key={stat.label} className="rounded-sm border border-white/10 bg-black/25 px-[1.4rem] py-[1.2rem]">
@@ -298,8 +301,8 @@ export default function Launchpad() {
           <div className="flex gap-[1rem] rounded-sm border border-accent-500/20 bg-accent-500/5 px-[1.6rem] py-[1.4rem]">
             <Sparkles className="mt-[0.2rem] size-[1.8rem] shrink-0 text-accent-500" />
             <p className="text-[1.2rem] leading-relaxed text-white/70">
-              After launch, buyers push the curve toward the target. Anyone can call listing once locked — LP goes to
-              the recycling vault.
+              When 60% of tokens are sold, the curve graduates to Uniswap V2 with a deep 40% LP pool.
+              LP is locked in the ZUNO recycling vault, and creator seed tokens remain securely time-locked.
             </p>
           </div>
 

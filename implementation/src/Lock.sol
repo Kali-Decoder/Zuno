@@ -48,11 +48,26 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Locks tokens for a specified account
+     * @dev Locks tokens for a specified account using defaultLockTime
      * @param token Address of the token to be locked
      * @param account Address of the account for which tokens are being locked
      */
     function lock(address token, address account) external nonReentrant {
+        _lock(token, account, defaultLockTime);
+    }
+
+    /**
+     * @dev Locks tokens for a specified account with a custom lock duration
+     * @param token Address of the token to be locked
+     * @param account Address of the account for which tokens are being locked
+     * @param duration Lock duration in seconds (must be >= MIN_LOCK_TIME && <= MAX_LOCK_TIME)
+     */
+    function lockWithDuration(address token, address account, uint256 duration) external nonReentrant {
+        require(duration >= MIN_LOCK_TIME && duration <= MAX_LOCK_TIME, "Invalid lock duration");
+        _lock(token, account, duration);
+    }
+
+    function _lock(address token, address account, uint256 duration) internal {
         require(token != address(0), ERR_INVALID_TOKEN_ADDRESS);
         require(account != address(0), ERR_INVALID_ACCOUNT);
 
@@ -62,7 +77,7 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
         require(amountIn > 0, ERR_LOCK_INVALID_AMOUNT_IN);
 
         lockedTokenBalance[token] += amountIn;
-        uint256 unlockTime = block.timestamp + defaultLockTime;
+        uint256 unlockTime = block.timestamp + duration;
 
         locked[token][account].push(LockInfo(amountIn, unlockTime));
 
@@ -88,29 +103,14 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Processes the unlock operation
+     * @dev Processes the unlock operation based on graduation and time
      * @param token Token address
      * @param account Account address
      * @return Amount available for unlock
      */
     function _processUnlock(address token, address account) internal returns (uint256) {
-        if (_isTokenListed(token)) {
-            return _processListingUnlock(token, account);
-        }
+        require(_isTokenListed(token), "Token not yet graduated to DEX");
         return _processTimeBasedUnlock(token, account);
-    }
-
-    /**
-     * @dev Processes unlock when token is listed
-     */
-    function _processListingUnlock(address token, address account) internal returns (uint256 availableAmount) {
-        for (uint256 i = 0; i < locked[token][account].length; i++) {
-            availableAmount += locked[token][account][i].amount;
-        }
-        if (availableAmount > 0) {
-            delete locked[token][account];
-        }
-        return availableAmount;
     }
 
     /**
@@ -145,21 +145,15 @@ contract Lock is ILock, Ownable, ReentrancyGuard {
      * @return Amount of tokens that can be unlocked
      */
     function getAvailableUnlockAmount(address token, address account) external view returns (uint256) {
-        uint256 availableAmount;
-        bool isListing = _isTokenListed(token);
-
-        if (isListing) {
-            for (uint256 i = 0; i < locked[token][account].length; i++) {
+        if (!_isTokenListed(token)) {
+            return 0;
+        }
+        uint256 availableAmount = 0;
+        for (uint256 i = 0; i < locked[token][account].length; i++) {
+            if (locked[token][account][i].unlockTime <= block.timestamp) {
                 availableAmount += locked[token][account][i].amount;
             }
-        } else {
-            for (uint256 i = 0; i < locked[token][account].length; i++) {
-                if (locked[token][account][i].unlockTime <= block.timestamp) {
-                    availableAmount += locked[token][account][i].amount;
-                }
-            }
         }
-
         return availableAmount;
     }
 

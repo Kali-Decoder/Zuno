@@ -8,6 +8,7 @@ import {IBondingCurve} from "./interfaces/IBondingCurve.sol";
 import {IBondingCurveFactory} from "./interfaces/IBondingCurveFactory.sol";
 import {IWNative} from "./interfaces/IWNative.sol";
 import {ICore} from "./interfaces/ICore.sol";
+import {ILock} from "./interfaces/ILock.sol";
 import {IFeeVault} from "./interfaces/IFeeVault.sol";
 import {BondingCurveLibrary} from "./utils/BondingCurveLibrary.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
@@ -28,6 +29,8 @@ contract Core is ICore {
     address public immutable wNative;
     /// @notice ERC4626 vault contract for fee collection
     IFeeVault public immutable vault;
+    /// @notice Lock contract for creator seed tokens
+    address public lock;
     bool isInitialized = false;
 
     /**
@@ -62,6 +65,15 @@ contract Core is ICore {
         require(!isInitialized, ERR_CORE_ALREADY_INITIALIZED);
         factory = _factory;
         isInitialized = true;
+    }
+
+    /**
+     * @notice Sets the creator seed lock contract
+     * @param _lock Address of the lock contract
+     */
+    function setLock(address _lock) external {
+        require(lock == address(0) || msg.sender == factory, "Unauthorized or lock already set");
+        lock = _lock;
     }
 
     /**
@@ -124,7 +136,12 @@ contract Core is ICore {
             amountOut = getAmountOut(amountIn, k, virtualNative, virtualToken);
             IERC20(wNative).safeTransfer(curve, amountIn);
             IBondingCurve(curve).buy(creator, amountOut);
-            IERC20(token).safeTransfer(creator, amountOut);
+            if (lock != address(0)) {
+                IERC20(token).safeTransfer(lock, amountOut);
+                ILock(lock).lock(token, creator);
+            } else {
+                IERC20(token).safeTransfer(creator, amountOut);
+            }
             return (curve, token, virtualNative + amountIn, virtualToken - amountOut, amountOut);
         }
         sendFeeByVault(_deployFee);

@@ -615,7 +615,7 @@ export type ChainToken = {
 };
 
 /** Arc Testnet ZUNO deploy start — used to bound eth_getLogs. */
-export const ARC_DEPLOY_START_BLOCK = 61615630;
+export const ARC_DEPLOY_START_BLOCK = 61783000;
 
 export async function loadCreateEvents(): Promise<ChainToken[]> {
   if (!isSetAddress(REFLOW.bondingCurveFactory)) return [];

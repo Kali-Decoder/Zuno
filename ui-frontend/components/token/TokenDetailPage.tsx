@@ -828,6 +828,8 @@ function RecentTrades({ tokenId, tokenSymbol }: { tokenId: string; tokenSymbol?:
                                 ? "border border-emerald-500/25 bg-emerald-500/15 text-emerald-300"
                                 : holder.label === "Creator"
                                 ? "border border-amber-500/25 bg-amber-500/15 text-amber-300"
+                                : holder.label === "Creator Seed Lock"
+                                ? "border border-cyan-500/25 bg-cyan-500/15 text-cyan-300"
                                 : "bg-white/10 text-white/70",
                             )}
                           >

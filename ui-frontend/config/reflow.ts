@@ -17,6 +17,7 @@ export type ReflowAddresses = {
   lpVault: string;
   activityMonitor: string;
   governor: string;
+  lock?: string;
 };
 
 export const REFLOW: ReflowAddresses = {
@@ -31,6 +32,7 @@ export const REFLOW: ReflowAddresses = {
   lpVault: env("NEXT_PUBLIC_LP_VAULT", deployed.lpVault),
   activityMonitor: env("NEXT_PUBLIC_ACTIVITY_MONITOR", deployed.activityMonitor),
   governor: env("NEXT_PUBLIC_GOVERNOR", deployed.governor),
+  lock: env("NEXT_PUBLIC_LOCK", (deployed as Record<string, string>).lock || ""),
 };
 
 /** Only this wallet sees lifecycle admin triggers (list / inactive / propose / vote / execute). */
@@ -82,6 +84,18 @@ export const CURVE_ABI = [
   "event Buy(address indexed sender, address indexed token, uint256 amountIn, uint256 amountOut)",
   "event Sell(address indexed sender, address indexed token, uint256 amountIn, uint256 amountOut)",
   "event Listing(address curve, address token, address pair, uint256 listingWNativeAmount, uint256 listingTokenAmount, uint256 burnLiquidity)",
+] as const;
+
+export const LOCK_ABI = [
+  "function lock(address token, address account)",
+  "function lockWithDuration(address token, address account, uint256 duration)",
+  "function unlock(address token, address account)",
+  "function getAvailableUnlockAmount(address token, address account) view returns (uint256)",
+  "function getLocked(address token, address account) view returns (tuple(uint256 amount, uint256 unlockTime)[])",
+  "function getTokenLockedBalance(address token) view returns (uint256)",
+  "function defaultLockTime() view returns (uint256)",
+  "event Locked(address token, address account, uint256 amount, uint256 unlockTime)",
+  "event Unlocked(address token, address account, uint256 amount)",
 ] as const;
 
 export const DEX_ROUTER_ABI = [

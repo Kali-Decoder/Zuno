@@ -98,4 +98,8 @@ interface ICore {
         returns (uint256 amountIn);
 
     function getFeeVault() external view returns (address feeVault);
+
+    function lock() external view returns (address);
+
+    function setLock(address _lock) external;
 }

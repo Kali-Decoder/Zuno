@@ -11,6 +11,7 @@ import {IBondingCurveFactory} from "../interfaces/IBondingCurveFactory.sol";
 import {ActivityMonitor} from "./ActivityMonitor.sol";
 import {LPRecyclingVault} from "./LPRecyclingVault.sol";
 import {RecyclingGovernor} from "./RecyclingGovernor.sol";
+import {Lock} from "../Lock.sol";
 
 /// @notice One-shot deployer for the V2 launchpad + LP recycling stack.
 contract ReflowV2Deployer {
@@ -24,6 +25,7 @@ contract ReflowV2Deployer {
         address lpVault;
         address activityMonitor;
         address governor;
+        address lock;
     }
 
     Deployment public deployment;
@@ -48,20 +50,23 @@ contract ReflowV2Deployer {
         // fee: 1% => denominator=1, numerator=100 (fee >= amount * den / num)
         DexRouter dexRouter = new DexRouter(address(dexFactory), address(wNative), address(feeVault), 1, 100);
 
+        Lock lockContract = new Lock(address(bcFactory), 14 days);
+        core.setLock(address(lockContract));
+
         LPRecyclingVault lpVault = new LPRecyclingVault(address(wNative));
         ActivityMonitor monitor = new ActivityMonitor();
         RecyclingGovernor governor = new RecyclingGovernor();
 
-        // Factory config — small target gap so tests can graduate quickly
+        // Factory config — 60% sold on curve, 40% reserved for Uniswap V2 LP
         bcFactory.initialize(
             IBondingCurveFactory.InitializeParams({
                 deployFee: 0,
                 listingFee: 0, // keep 0 in local tests; set >0 in production deploy
                 tokenTotalSupply: 1e27,
-                virtualNative: 30 ether,
-                virtualToken: 1_073_000_000 ether,
-                // Sell ~800M tokens before lock so curve holds meaningful WNATIVE for LP
-                targetToken: 200_000_000 ether,
+                virtualNative: 60 ether,
+                virtualToken: 1_800_000_000 ether,
+                // Sell 600M tokens (60%) before lock, 400M (40%) to DEX LP
+                targetToken: 400_000_000 ether,
                 feeNumerator: 100,
                 feeDenominator: 1,
                 dexFactory: address(dexFactory)
@@ -84,6 +89,7 @@ contract ReflowV2Deployer {
         dexRouter.setActivityMonitor(address(monitor));
 
         // Transfer ownership to admin
+        lockContract.transferOwnership(admin);
         lpVault.transferOwnership(admin);
         monitor.transferOwnership(admin);
         governor.transferOwnership(admin);
@@ -98,7 +104,8 @@ contract ReflowV2Deployer {
             dexRouter: address(dexRouter),
             lpVault: address(lpVault),
             activityMonitor: address(monitor),
-            governor: address(governor)
+            governor: address(governor),
+            lock: address(lockContract)
         });
         deployment = d;
         emit Deployed(d);

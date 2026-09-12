@@ -12,8 +12,10 @@ interface ILock {
     }
 
     function lock(address token, address account) external;
+    function lockWithDuration(address token, address account, uint256 duration) external;
     function unlock(address token, address account) external;
     function getAvailableUnlockAmount(address token, address account) external view returns (uint256);
     function getLocked(address token, address account) external view returns (LockInfo[] memory);
     function getTokenLockedBalance(address token) external view returns (uint256);
+    function defaultLockTime() external view returns (uint256);
 }

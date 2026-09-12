@@ -140,6 +140,12 @@ export async function resolveHolders(tokenAddress: string): Promise<{
         candidateMap.set(pAddr, { label: "Uniswap V2 Pair", isContract: true });
       }
     }
+    if (REFLOW.lock && ethers.isAddress(REFLOW.lock)) {
+      const lAddr = REFLOW.lock.toLowerCase();
+      if (!candidateMap.has(lAddr)) {
+        candidateMap.set(lAddr, { label: "Creator Seed Lock", isContract: true });
+      }
+    }
 
     for (const t of mongoTrades) {
       const trAddr = (t.trader || "").toLowerCase();

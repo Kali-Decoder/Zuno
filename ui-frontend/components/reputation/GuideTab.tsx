@@ -25,7 +25,7 @@ const LIFECYCLE = [
     id: "launch",
     title: "Launch",
     icon: Rocket,
-    body: "Create a token on the bonding curve via Core.createCurve. Optional seed buy sets initial virtual reserves.",
+    body: "Create a token on the bonding curve via Core.createCurve. Creator seed buys are time-locked to guarantee anti-dump commitment.",
     href: "/launch",
     cta: "Open launchpad",
   },
@@ -33,7 +33,7 @@ const LIFECYCLE = [
     id: "bond",
     title: "Bond",
     icon: TrendingUp,
-    body: "Buy and sell on the curve until the graduation target is hit. Progress is tracked live on the token page.",
+    body: "Buy and sell on the curve until 60% of supply is sold. Progress is tracked live on the token page.",
     href: "/",
     cta: "Explore bonding",
   },
@@ -41,7 +41,7 @@ const LIFECYCLE = [
     id: "graduate",
     title: "Graduate",
     icon: Lock,
-    body: "When the curve locks, anyone can call listing(). A Uniswap V2 pool opens and LP is locked in the recycling vault — not burned.",
+    body: "When the curve reaches 60% sold, it locks. A Uniswap V2 pool opens with 40% deep LP supply, locked in the recycling vault.",
     href: "/tokens",
     cta: "View tokens",
   },
@@ -99,7 +99,7 @@ const HOW_TO = [
 const FAQ = [
   {
     q: "What makes ZUNO different?",
-    a: "Most launchpads burn LP forever. ZUNO locks graduated LP in a vault so inactive liquidity can be recycled into active projects by community vote.",
+    a: "Standard launchpads copy the 80/20 model with shallow DEX liquidity and unvetted creators. ZUNO features a 60% sold / 40% deep DEX LP architecture, mandatory creator seed time-locks to prevent developer rug dumps, and a community liquidity recycling system where inactive pool LP is voted into active tokens.",
   },
   {
     q: "When can I launch a pool?",

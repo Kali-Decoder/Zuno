@@ -18,6 +18,7 @@ export type DeploymentAddresses = {
   lpVault?: string;
   activityMonitor?: string;
   governor?: string;
+  lock?: string;
   configuredAt?: string;
 };
 
