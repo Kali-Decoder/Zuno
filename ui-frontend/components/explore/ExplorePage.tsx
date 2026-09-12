@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ExploreTokenCard from "./ExploreTokenCard";
 import GraduatedSection from "./GraduatedSection";
-import { ZunoLoader } from "~~/components/common/ZunoLoader";
+import { TokenGridSkeleton } from "~~/components/common/TokenSkeleton";
 import type { ExploreToken } from "~~/constants/exploreTokens";
 import { useApiTokens } from "~~/hooks/useApiTokens";
 import { getCurveProgress } from "~~/lib/reflow/actions";
@@ -135,7 +135,7 @@ export default function ExplorePage() {
             </div>
             <p className="max-w-[48rem] text-[1.25rem] text-white/45 sm:text-[1.35rem]">
               Tokens climbing toward graduation on Arc Testnet.
-              {loading ? " Loading…" : syncing ? " Syncing…" : ""}
+              {syncing && !loading ? " Syncing…" : ""}
             </p>
             <button
               type="button"
@@ -190,19 +190,19 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-[1rem] sm:grid-cols-3 sm:gap-[1.2rem] lg:grid-cols-4 xl:grid-cols-5">
-          {pageTokens.map(token => (
-            <ExploreTokenCard key={token.id} token={token} />
-          ))}
-        </div>
+        {loading && pageTokens.length === 0 ? (
+          <TokenGridSkeleton count={10} />
+        ) : (
+          <div className="grid grid-cols-2 gap-[1rem] sm:grid-cols-3 sm:gap-[1.2rem] lg:grid-cols-4 xl:grid-cols-5">
+            {pageTokens.map(token => (
+              <ExploreTokenCard key={token.id} token={token} />
+            ))}
+          </div>
+        )}
 
-        {pageTokens.length === 0 && (
+        {!loading && pageTokens.length === 0 && (
           <div className="grid place-content-center rounded-[1.4rem] bg-[#161616] px-[2rem] py-[6rem]">
-            {loading ? (
-              <ZunoLoader size="md" label="Loading tokens…" />
-            ) : (
-              <p className="text-center text-white/40">No bonding tokens yet. Launch one from Launch.</p>
-            )}
+            <p className="text-center text-white/40">No bonding tokens yet. Launch one from Launch.</p>
           </div>
         )}
 

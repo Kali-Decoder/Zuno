@@ -33,7 +33,7 @@ const ENUM_STATUSES = {
 };
 
 const DEFAULT_DURATION = 3000;
-const DEFAULT_POSITION: ToastPosition = "top-center";
+const DEFAULT_POSITION: ToastPosition = "bottom-right";
 
 // background: "hsl(var(--color-primary-500))",
 // color: "hsl(var(--color-white))",

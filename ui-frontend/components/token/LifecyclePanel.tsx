@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import HoverButton from "~~/components/common/HoverButton";
 import { Spinner } from "~~/components/common/Spinner";
+import { PanelSkeleton } from "~~/components/common/TokenSkeleton";
 import {
   derivePhaseFromLifecycle,
   executeProposal,
@@ -147,13 +148,7 @@ export default function LifecyclePanel({
   };
 
   if (loading && !life) {
-    return (
-      <section className="rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.6rem] sm:p-[2rem]">
-        <div className="flex items-center gap-[0.8rem] text-white/40">
-          <Spinner /> Loading lifecycle…
-        </div>
-      </section>
-    );
+    return <PanelSkeleton rows={4} />;
   }
 
   if (!life) return null;

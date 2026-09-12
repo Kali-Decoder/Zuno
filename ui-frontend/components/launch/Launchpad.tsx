@@ -14,13 +14,6 @@ import { createTokenCurve } from "~~/lib/reflow/actions";
 import { decodeCallError } from "~~/lib/reflow/tx";
 import { cn } from "~~/lib/utils";
 
-const STEPS = [
-  { id: 1, label: "Details", hint: "Name & symbol" },
-  { id: 2, label: "Media", hint: "Token image" },
-  { id: 3, label: "Curve", hint: "Seed buy" },
-  { id: 4, label: "Launch", hint: "Review" },
-] as const;
-
 const PRESET_IMAGES = [
   { src: "/coins/token1.webp", label: "Fox" },
   { src: "/coins/token2.jpeg", label: "Dragon" },
@@ -69,7 +62,6 @@ const inputClass =
 export default function Launchpad() {
   const { isConnected } = useAccount();
   const wallet = useReflowWallet();
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [launched, setLaunched] = useState<{
@@ -79,12 +71,10 @@ export default function Launchpad() {
     imageUrl: string;
   } | null>(null);
 
-  const canNext = useMemo(() => {
-    if (step === 1) return form.name.trim().length >= 2 && form.symbol.trim().length >= 2;
-    if (step === 2) return !!form.imageUrl;
-    if (step === 3) return Number(form.seedBuy) >= 0;
-    return true;
-  }, [step, form]);
+  const canLaunch = useMemo(
+    () => form.name.trim().length >= 2 && form.symbol.trim().length >= 2 && !!form.imageUrl && Number(form.seedBuy) >= 0,
+    [form],
+  );
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -135,7 +125,6 @@ export default function Launchpad() {
               lifecycleSyncedAt: new Date().toISOString(),
             }),
           });
-          // Best-effort full sync so Explore picks up other chain tokens too
           void fetch("/api/tokens/sync", { method: "POST" });
         } catch {
           /* Mongo optional — launch still succeeds on-chain */
@@ -161,23 +150,23 @@ export default function Launchpad() {
   if (launched) {
     return (
       <div className="page-container pb-[6rem]">
-        <div className="tabs-wrapper max-w-[72rem] mx-auto items-center text-center gap-[2.4rem] py-[4rem]">
-          <div className="size-[6.4rem] rounded-full bg-accent-500/15 border border-accent-500/40 grid place-content-center">
+        <div className="tabs-wrapper mx-auto max-w-[72rem] items-center gap-[2.4rem] py-[4rem] text-center">
+          <div className="grid size-[6.4rem] place-content-center rounded-full border border-accent-500/40 bg-accent-500/15">
             <Check className="size-[2.8rem] text-accent-500" />
           </div>
           <div className="space-y-[0.8rem]">
-            <p className="text-accent-500 font-mono text-[1.1rem] uppercase tracking-[0.16em]">Launched</p>
-            <h1 className="text-[2.8rem] sm:text-[4rem] font-bold leading-tight">
+            <p className="font-mono text-[1.1rem] uppercase tracking-[0.16em] text-accent-500">Launched</p>
+            <h1 className="text-[2.8rem] font-bold leading-tight sm:text-[4rem]">
               {launched.name} <span className="text-accent-500">${launched.symbol}</span>
             </h1>
-            <p className="text-white/60 text-[1.2rem] sm:text-[1.4rem] max-w-[42rem] mx-auto">
+            <p className="mx-auto max-w-[42rem] text-[1.2rem] text-white/60 sm:text-[1.4rem]">
               Your bonding curve is live on Arc Testnet. Share the token and invite early buyers.
             </p>
           </div>
-          <div className="relative size-[12rem] rounded-md overflow-hidden border border-white/10 bg-white/5">
+          <div className="relative size-[12rem] overflow-hidden rounded-md border border-white/10 bg-white/5">
             <Image src={launched.imageUrl} alt={launched.name} fill className="object-cover" unoptimized />
           </div>
-          <div className="w-full max-w-[48rem] rounded-sm border border-white/10 bg-black/35 px-[1.6rem] py-[1.2rem] font-mono text-[1.1rem] sm:text-[1.3rem] text-white/80 break-all">
+          <div className="w-full max-w-[48rem] break-all rounded-sm border border-white/10 bg-black/35 px-[1.6rem] py-[1.2rem] font-mono text-[1.1rem] text-white/80 sm:text-[1.3rem]">
             {launched.address}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-[1.2rem]">
@@ -192,7 +181,6 @@ export default function Launchpad() {
               handleOnClick={() => {
                 setLaunched(null);
                 setForm(INITIAL);
-                setStep(1);
               }}
             >
               Launch another
@@ -205,260 +193,163 @@ export default function Launchpad() {
 
   return (
     <div className="page-container pb-[6rem]">
-      <div className="mb-[2.4rem] sm:mb-[3.2rem] space-y-[1.2rem]">
+      <div className="mb-[2.4rem] space-y-[1.2rem] sm:mb-[3.2rem]">
         <div className="flex items-center gap-[0.8rem] text-accent-500">
           <Rocket className="size-[1.6rem]" />
           <span className="font-mono text-[1.1rem] uppercase tracking-[0.16em]">Token launchpad</span>
         </div>
-        <h1 className="text-[2.8rem] sm:text-[4.4rem] font-bold leading-none">
+        <h1 className="text-[2.8rem] font-bold leading-none sm:text-[4.4rem]">
           Launch on the <span className="text-accent-500">bonding curve</span>
         </h1>
-        <p className="text-white/60 text-[1.2rem] sm:text-[1.5rem] max-w-[56rem]">
+        <p className="max-w-[56rem] text-[1.2rem] text-white/60 sm:text-[1.5rem]">
           Create a token, seed the curve, and graduate later. Launches write to Core.createCurve on Arc Testnet.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_32rem] gap-[1.6rem] sm:gap-[2.4rem]">
+      <div className="grid grid-cols-1 gap-[1.6rem] sm:gap-[2.4rem] lg:grid-cols-[minmax(0,1fr)_32rem]">
         <section className="tabs-wrapper gap-[2.4rem]">
-          <ol className="flex flex-wrap gap-[0.8rem]">
-            {STEPS.map(s => {
-              const active = step === s.id;
-              const done = step > s.id;
-              return (
-                <li key={s.id}>
+          <div className="grid gap-[1.6rem] sm:grid-cols-2">
+            <Field label="Token name" hint="Passed to createCurve — at least 2 characters">
+              <input
+                className={inputClass}
+                placeholder="e.g. ZUNO Frog"
+                value={form.name}
+                onChange={e => update("name", e.target.value)}
+              />
+            </Field>
+            <Field label="Symbol" hint="On-chain ticker">
+              <input
+                className={inputClass}
+                placeholder="e.g. FROG"
+                value={form.symbol}
+                maxLength={10}
+                onChange={e => update("symbol", e.target.value.toUpperCase())}
+              />
+            </Field>
+          </div>
+
+          <Field label="Token image" hint="Stored on-chain as tokenURI">
+            <div className="grid grid-cols-3 gap-[0.8rem] sm:grid-cols-6">
+              {PRESET_IMAGES.map(img => {
+                const selected = form.imageUrl === img.src;
+                return (
                   <button
+                    key={img.src}
                     type="button"
-                    onClick={() => setStep(s.id)}
+                    onClick={() => update("imageUrl", img.src)}
                     className={cn(
-                      "flex items-center gap-[0.8rem] rounded-full border px-[1.2rem] py-[0.7rem] text-[1.1rem] transition-colors",
-                      active
-                        ? "border-accent-500/50 bg-accent-500/10 text-accent-500"
-                        : done
-                          ? "border-white/20 bg-white/5 text-white"
-                          : "border-white/10 text-white/40",
+                      "relative aspect-square overflow-hidden rounded-sm border transition-colors",
+                      selected
+                        ? "border-accent-500 ring-1 ring-accent-500/40"
+                        : "border-white/10 hover:border-white/30",
                     )}
                   >
-                    <span
-                      className={cn(
-                        "size-[1.8rem] rounded-full grid place-content-center text-[1rem] font-bold",
-                        active || done ? "bg-accent-500 text-primary-800" : "bg-white/10",
-                      )}
-                    >
-                      {done ? <Check className="size-[1rem]" /> : s.id}
-                    </span>
-                    <span className="hidden sm:inline font-medium">{s.label}</span>
+                    <Image src={img.src} alt={img.label} fill className="object-cover" unoptimized sizes="80px" />
                   </button>
-                </li>
-              );
-            })}
-          </ol>
-
-          {step === 1 && (
-            <div className="grid gap-[1.6rem] sm:grid-cols-2">
-              <Field label="Token name" hint="Passed to createCurve — at least 2 characters">
-                <input
-                  className={inputClass}
-                  placeholder="e.g. ZUNO Frog"
-                  value={form.name}
-                  onChange={e => update("name", e.target.value)}
-                />
-              </Field>
-              <Field label="Symbol" hint="On-chain ticker">
-                <input
-                  className={inputClass}
-                  placeholder="e.g. FROG"
-                  value={form.symbol}
-                  maxLength={10}
-                  onChange={e => update("symbol", e.target.value.toUpperCase())}
-                />
-              </Field>
+                );
+              })}
             </div>
-          )}
+          </Field>
 
-          {step === 2 && (
-            <div className="space-y-[2rem]">
-              <Field label="Token image" hint="Stored on-chain as tokenURI">
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-[0.8rem]">
-                  {PRESET_IMAGES.map(img => {
-                    const selected = form.imageUrl === img.src;
-                    return (
-                      <button
-                        key={img.src}
-                        type="button"
-                        onClick={() => update("imageUrl", img.src)}
-                        className={cn(
-                          "relative aspect-square rounded-sm overflow-hidden border transition-colors",
-                          selected ? "border-accent-500 ring-1 ring-accent-500/40" : "border-white/10 hover:border-white/30",
-                        )}
-                      >
-                        <Image src={img.src} alt={img.label} fill className="object-cover" unoptimized sizes="80px" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-              <div className="rounded-sm border border-dashed border-white/15 bg-black/20 px-[1.6rem] py-[1.6rem] space-y-[1.2rem]">
-                <div className="flex flex-col items-center gap-[0.8rem] text-white/50">
-                  <Upload className="size-[2rem]" />
-                  <p className="text-[1.2rem]">Pick a preset or paste an image URL</p>
-                </div>
-                <Field label="Image URL">
-                  <input
-                    className={inputClass}
-                    placeholder="https://… or ipfs://…"
-                    value={form.imageUrl}
-                    onChange={e => update("imageUrl", e.target.value)}
-                  />
-                </Field>
-              </div>
+          <div className="space-y-[1.2rem] rounded-sm border border-dashed border-white/15 bg-black/20 px-[1.6rem] py-[1.6rem]">
+            <div className="flex flex-col items-center gap-[0.8rem] text-white/50">
+              <Upload className="size-[2rem]" />
+              <p className="text-[1.2rem]">Pick a preset or paste an image URL</p>
             </div>
-          )}
+            <Field label="Image URL">
+              <input
+                className={inputClass}
+                placeholder="https://… or ipfs://…"
+                value={form.imageUrl}
+                onChange={e => update("imageUrl", e.target.value)}
+              />
+            </Field>
+          </div>
 
-          {step === 3 && (
-            <div className="space-y-[2rem]">
-              <Field
-                label="Seed buy (USDC)"
-                hint="Optional first buy when the curve is created. Trade fee ~1%."
-              >
-                <input
-                  className={inputClass}
-                  type="number"
-                  min={0}
-                  step="0.1"
-                  placeholder="1"
-                  value={form.seedBuy}
-                  onChange={e => update("seedBuy", e.target.value)}
-                />
-              </Field>
-              <div className="grid gap-[1.2rem] sm:grid-cols-3">
-                {[
-                  { label: "Listing target", value: "~800M tokens sold" },
-                  { label: "Deploy fee", value: "0 USDC" },
-                  { label: "Trading fee", value: "1%" },
-                ].map(stat => (
-                  <div key={stat.label} className="rounded-sm border border-white/10 bg-black/25 px-[1.4rem] py-[1.2rem]">
-                    <p className="text-[1rem] uppercase tracking-[0.14em] text-white/40">{stat.label}</p>
-                    <p className="mt-[0.6rem] text-[1.4rem] font-semibold text-white">{stat.value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-sm border border-accent-500/20 bg-accent-500/5 px-[1.6rem] py-[1.4rem] flex gap-[1rem]">
-                <Sparkles className="size-[1.8rem] text-accent-500 shrink-0 mt-[0.2rem]" />
-                <p className="text-[1.2rem] text-white/70 leading-relaxed">
-                  After launch, buyers push the curve toward the target. Anyone can call listing once locked — LP goes to
-                  the recycling vault.
-                </p>
-              </div>
-            </div>
-          )}
+          <Field label="Seed buy (USDC)" hint="Optional first buy when the curve is created. Trade fee ~1%.">
+            <input
+              className={inputClass}
+              type="number"
+              min={0}
+              step="0.1"
+              placeholder="1"
+              value={form.seedBuy}
+              onChange={e => update("seedBuy", e.target.value)}
+            />
+          </Field>
 
-          {step === 4 && (
-            <div className="space-y-[2rem]">
-              <div className="flex flex-col sm:flex-row gap-[1.6rem] items-start">
-                <div className="relative size-[10rem] rounded-md overflow-hidden border border-white/10 bg-white/5 shrink-0">
-                  {form.imageUrl ? (
-                    <Image src={form.imageUrl} alt="" fill className="object-cover" unoptimized />
+          <div className="grid gap-[1.2rem] sm:grid-cols-3">
+            {[
+              { label: "Listing target", value: "~800M tokens sold" },
+              { label: "Deploy fee", value: "0 USDC" },
+              { label: "Trading fee", value: "1%" },
+            ].map(stat => (
+              <div key={stat.label} className="rounded-sm border border-white/10 bg-black/25 px-[1.4rem] py-[1.2rem]">
+                <p className="text-[1rem] uppercase tracking-[0.14em] text-white/40">{stat.label}</p>
+                <p className="mt-[0.6rem] text-[1.4rem] font-semibold text-white">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-[1rem] rounded-sm border border-accent-500/20 bg-accent-500/5 px-[1.6rem] py-[1.4rem]">
+            <Sparkles className="mt-[0.2rem] size-[1.8rem] shrink-0 text-accent-500" />
+            <p className="text-[1.2rem] leading-relaxed text-white/70">
+              After launch, buyers push the curve toward the target. Anyone can call listing once locked — LP goes to
+              the recycling vault.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-[1.2rem] border-t border-white/10 pt-[0.8rem]">
+            {isConnected ? (
+              <HoverButton disabled={submitting || !canLaunch} handleOnClick={launch}>
+                <span className="inline-flex items-center gap-[0.6rem]">
+                  {submitting ? (
+                    <>
+                      Launching
+                      <Spinner className="size-[1.4rem]" />
+                    </>
                   ) : (
-                    <div className="size-full grid place-content-center text-white/30">
-                      <ImagePlus className="size-[2.4rem]" />
-                    </div>
+                    <>
+                      Launch token
+                      <Rocket className="size-[1.4rem]" />
+                    </>
                   )}
-                </div>
-                <div className="space-y-[0.6rem]">
-                  <h2 className="text-[2.4rem] font-bold leading-tight">
-                    {form.name || "Unnamed"}{" "}
-                    <span className="text-accent-500">${form.symbol || "???"}</span>
-                  </h2>
-                  <p className="font-mono text-[1.2rem] text-white/80">Seed buy: {form.seedBuy || "0"} USDC</p>
-                  <p className="font-mono text-[1.1rem] text-white/45 break-all line-clamp-2">
-                    tokenURI: {form.imageUrl || "—"}
-                  </p>
-                </div>
-              </div>
-              <ul className="space-y-[0.8rem] text-[1.2rem] text-white/65">
-                <li className="flex gap-[0.8rem]">
-                  <Check className="size-[1.4rem] text-accent-500 shrink-0 mt-[0.2rem]" />
-                  Bonding curve created with factory defaults
-                </li>
-                <li className="flex gap-[0.8rem]">
-                  <Check className="size-[1.4rem] text-accent-500 shrink-0 mt-[0.2rem]" />
-                  Token appears under Tokens → Pre-buy / Upcoming
-                </li>
-                <li className="flex gap-[0.8rem]">
-                  <Check className="size-[1.4rem] text-accent-500 shrink-0 mt-[0.2rem]" />
-                  Connect your wallet to sign the create transaction
-                </li>
-              </ul>
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center justify-between gap-[1.2rem] pt-[0.8rem] border-t border-white/10">
-            <button
-              type="button"
-              disabled={step === 1}
-              onClick={() => setStep(s => Math.max(1, s - 1))}
-              className="text-[1.2rem] text-white/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Back
-            </button>
-            <div className="flex gap-[1rem]">
-              {step < 4 ? (
-                <HoverButton disabled={!canNext} handleOnClick={() => setStep(s => Math.min(4, s + 1))}>
-                  Continue
-                </HoverButton>
-              ) : isConnected ? (
-                <HoverButton disabled={submitting || !canNext} handleOnClick={launch}>
-                  <span className="inline-flex items-center gap-[0.6rem]">
-                    {submitting ? (
-                      <>
-                        Launching
-                        <Spinner className="size-[1.4rem]" />
-                      </>
-                    ) : (
-                      <>
-                        Launch token
-                        <Rocket className="size-[1.4rem]" />
-                      </>
-                    )}
-                  </span>
-                </HoverButton>
-              ) : (
-                <ConnectWalletButton className="hover:bg-accent-600">Connect to launch</ConnectWalletButton>
-              )}
-            </div>
+                </span>
+              </HoverButton>
+            ) : (
+              <ConnectWalletButton className="hover:bg-accent-600">Connect to launch</ConnectWalletButton>
+            )}
           </div>
         </section>
 
         <aside className="space-y-[1.6rem]">
           <div className="tabs-wrapper gap-[1.6rem]">
             <p className="text-[1rem] uppercase tracking-[0.16em] text-white/40">Live preview</p>
-            <div className="relative aspect-square max-w-[22rem] mx-auto w-full rounded-md overflow-hidden border border-white/10 bg-white/5">
+            <div className="relative mx-auto aspect-square w-full max-w-[22rem] overflow-hidden rounded-md border border-white/10 bg-white/5">
               {form.imageUrl ? (
                 <Image src={form.imageUrl} alt="preview" fill className="object-cover" unoptimized />
               ) : (
-                <div className="size-full grid place-content-center text-white/25">
+                <div className="grid size-full place-content-center text-white/25">
                   <ImagePlus className="size-[3rem]" />
                 </div>
               )}
             </div>
             <div>
               <p className="text-[2rem] font-bold leading-tight">{form.name || "Token name"}</p>
-              <p className="text-accent-500 font-mono text-[1.4rem]">${form.symbol || "TICKER"}</p>
+              <p className="font-mono text-[1.4rem] text-accent-500">${form.symbol || "TICKER"}</p>
             </div>
-            <p className="text-[1.2rem] text-white/50">
-              Seed: {form.seedBuy || "0"} USDC
-            </p>
+            <p className="text-[1.2rem] text-white/50">Seed: {form.seedBuy || "0"} USDC</p>
           </div>
 
-          <div className="rounded-md border border-white/10 bg-white/5 p-[1.6rem] space-y-[1rem]">
-            <p className="font-medium text-[1.3rem]">After launch</p>
-            <ol className="space-y-[0.8rem] text-[1.15rem] text-white/55 list-decimal list-inside">
+          <div className="space-y-[1rem] rounded-md border border-white/10 bg-white/5 p-[1.6rem]">
+            <p className="text-[1.3rem] font-medium">After launch</p>
+            <ol className="list-inside list-decimal space-y-[0.8rem] text-[1.15rem] text-white/55">
               <li>Buy on the curve until lock</li>
               <li>Graduate to Uniswap V2</li>
               <li>Trade via DexRouter</li>
               <li>Recycle inactive LP later</li>
             </ol>
-            <Link href="/guide" className="inline-block text-accent-500 text-[1.2rem] hover:underline">
+            <Link href="/guide" className="inline-block text-[1.2rem] text-accent-500 hover:underline">
               Read the guide →
             </Link>
           </div>

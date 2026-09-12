@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import ConnectWalletButton from "../common/ConnectWalletButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../common/DropdownMenu";
 import CopyAddressToClipboard from "../common/CopyAddressToClipboard";
@@ -18,12 +19,18 @@ function WalletButtonInner() {
     query: { enabled: !!address },
   });
   const { switchChainAsync } = useSwitchChain();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const truncated = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "No wallet";
   const nativeBalance = balance ? `${parseFloat(balance.formatted).toFixed(2)} ${balance.symbol}` : "--";
   const networkName = isValidChain ? "Arc Testnet" : "Wrong network";
 
-  if (!isConnected || !address) {
+  // Match SSR: show Connect until client has mounted (avoids Connect vs connected UI mismatch).
+  if (!mounted || !isConnected || !address) {
     return <ConnectWalletButton />;
   }
 

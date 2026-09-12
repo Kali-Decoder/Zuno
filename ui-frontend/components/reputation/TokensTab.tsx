@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../common/Tabs";
 import CoinCard from "../home/DiscoverCoins/CoinCard";
 import ActiveTokenCard from "./ActiveTokenCard";
 import UpcomingToken from "./UpcomingToken";
+import { TokenGridSkeleton } from "~~/components/common/TokenSkeleton";
 import { useApiTokens } from "~~/hooks/useApiTokens";
 import { apiToCultToken } from "~~/lib/tokens/adapters";
 import { StarIcon, TrophyOutlineIcon, ZapIcon } from "~~/icons/symbols";
@@ -67,7 +68,7 @@ const TokensTab = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Active pools</h2>
             <span className="text-[1rem] text-white/60">
-              {loading ? "…" : `${active.length} tokens`}
+              {loading ? "" : `${active.length} tokens`}
             </span>
           </div>
           <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/[0.08] p-[1.5rem]">
@@ -76,17 +77,23 @@ const TokensTab = () => {
               Listed tokens with vault-locked LP that are still active — trade via DexRouter.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
-            {active.map(token => (
-              <ActiveTokenCard key={token.address} token={token} />
-            ))}
-          </div>
-          {active.length === 0 && (
-            <div className="py-[4rem] text-center">
-              <p className="text-[1.2rem] text-white/60">
-                {loading ? "Loading…" : "No active listed pools yet. Graduate a bonding token to see it here."}
-              </p>
-            </div>
+          {loading ? (
+            <TokenGridSkeleton count={6} variant="wide" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
+                {active.map(token => (
+                  <ActiveTokenCard key={token.address} token={token} />
+                ))}
+              </div>
+              {active.length === 0 && (
+                <div className="py-[4rem] text-center">
+                  <p className="text-[1.2rem] text-white/60">
+                    No active listed pools yet. Graduate a bonding token to see it here.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </TabsContent>
@@ -96,7 +103,7 @@ const TokensTab = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Bonding curve</h2>
             <span className="text-[1rem] text-white/60">
-              {loading ? "…" : `${bonding.length} tokens`}
+              {loading ? "" : `${bonding.length} tokens`}
             </span>
           </div>
           <div className="mb-[2rem] rounded-lg border border-accent-500/20 bg-accent-500/10 p-[1.5rem]">
@@ -105,17 +112,21 @@ const TokensTab = () => {
               Progress toward the graduation target. When locked, launch the pool from the token page.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
-            {bonding.map(token => (
-              <CoinCard className="mx-auto" key={token.id} token={token} stage="Prebuy" />
-            ))}
-          </div>
-          {bonding.length === 0 && (
-            <div className="py-[4rem] text-center">
-              <p className="text-[1.2rem] text-white/60">
-                {loading ? "Loading…" : "No bonding tokens yet. Launch one to get started."}
-              </p>
-            </div>
+          {loading ? (
+            <TokenGridSkeleton count={6} variant="wide" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
+                {bonding.map(token => (
+                  <CoinCard className="mx-auto" key={token.id} token={token} stage="Prebuy" />
+                ))}
+              </div>
+              {bonding.length === 0 && (
+                <div className="py-[4rem] text-center">
+                  <p className="text-[1.2rem] text-white/60">No bonding tokens yet. Launch one to get started.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </TabsContent>
@@ -124,7 +135,7 @@ const TokensTab = () => {
         <div className="space-y-[2.4rem]">
           <div className="flex items-center justify-between">
             <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Live pools</h2>
-            <span className="text-[1rem] text-white/60">{graduated.length} tokens</span>
+            <span className="text-[1rem] text-white/60">{loading ? "" : `${graduated.length} tokens`}</span>
           </div>
           <div className="mb-[2rem] rounded-lg border border-green-500/20 bg-green-500/10 p-[1.5rem]">
             <p className="mb-[0.5rem] font-medium text-green-400">DEX trading</p>
@@ -132,15 +143,21 @@ const TokensTab = () => {
               Graduated tokens trade via the router. LP sits in the recycling vault.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
-            {graduated.map(token => (
-              <CoinCard className="mx-auto" key={token.id} token={token} stage="Live" />
-            ))}
-          </div>
-          {graduated.length === 0 && (
-            <div className="py-[4rem] text-center">
-              <p className="text-[1.2rem] text-white/60">No graduated tokens yet</p>
-            </div>
+          {loading ? (
+            <TokenGridSkeleton count={6} variant="wide" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
+                {graduated.map(token => (
+                  <CoinCard className="mx-auto" key={token.id} token={token} stage="Live" />
+                ))}
+              </div>
+              {graduated.length === 0 && (
+                <div className="py-[4rem] text-center">
+                  <p className="text-[1.2rem] text-white/60">No graduated tokens yet</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </TabsContent>
@@ -149,7 +166,7 @@ const TokensTab = () => {
         <div className="space-y-[2.4rem]">
           <div className="flex items-center justify-between">
             <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Inactive / eligible</h2>
-            <span className="text-[1rem] text-white/60">{inactive.length} tokens</span>
+            <span className="text-[1rem] text-white/60">{loading ? "" : `${inactive.length} tokens`}</span>
           </div>
           <div className="mb-[2rem] rounded-lg border border-orange-500/20 bg-orange-500/10 p-[1.5rem]">
             <p className="mb-[0.5rem] font-medium text-orange-300">Ready to recycle</p>
@@ -157,23 +174,29 @@ const TokensTab = () => {
               Open a token to propose recycling its LP into healthier listed projects.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
-            {inactive.map(t => (
-              <UpcomingToken
-                key={t.address}
-                className="w-auto sm:w-auto"
-                name={t.name}
-                symbol={t.symbol}
-                href={`/token/${t.address}`}
-                imageUrl={t.imageUrl}
-                subtitle="Inactive · propose recycle"
-              />
-            ))}
-          </div>
-          {inactive.length === 0 && (
-            <div className="py-[4rem] text-center">
-              <p className="text-[1.2rem] text-white/60">No inactive tokens right now</p>
-            </div>
+          {loading ? (
+            <TokenGridSkeleton count={6} variant="wide" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
+                {inactive.map(t => (
+                  <UpcomingToken
+                    key={t.address}
+                    className="w-auto sm:w-auto"
+                    name={t.name}
+                    symbol={t.symbol}
+                    href={`/token/${t.address}`}
+                    imageUrl={t.imageUrl}
+                    subtitle="Inactive · propose recycle"
+                  />
+                ))}
+              </div>
+              {inactive.length === 0 && (
+                <div className="py-[4rem] text-center">
+                  <p className="text-[1.2rem] text-white/60">No inactive tokens right now</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </TabsContent>
@@ -182,7 +205,7 @@ const TokensTab = () => {
         <div className="space-y-[2.4rem]">
           <div className="flex items-center justify-between">
             <h2 className="text-[1.8rem] font-bold text-white sm:text-[2.4rem]">Active votes</h2>
-            <span className="text-[1rem] text-white/60">{voting.length} proposals</span>
+            <span className="text-[1rem] text-white/60">{loading ? "" : `${voting.length} proposals`}</span>
           </div>
           <div className="mb-[2rem] rounded-lg border border-accent-500/20 bg-accent-500/10 p-[1.5rem]">
             <p className="mb-[0.5rem] font-medium text-accent-500">Stake USDC to vote</p>
@@ -190,23 +213,29 @@ const TokensTab = () => {
               Vote which listed token receives recycled liquidity, then execute when the proposal succeeds.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
-            {voting.map(t => (
-              <UpcomingToken
-                key={t.address}
-                className="w-auto sm:w-auto"
-                name={t.name}
-                symbol={t.symbol}
-                href={`/token/${t.address}`}
-                imageUrl={t.imageUrl}
-                subtitle={`Proposal #${t.proposal?.id ?? "—"} · ${t.proposal?.state || "Active"}`}
-              />
-            ))}
-          </div>
-          {voting.length === 0 && (
-            <div className="py-[4rem] text-center">
-              <p className="text-[1.2rem] text-white/60">No active recycling votes</p>
-            </div>
+          {loading ? (
+            <TokenGridSkeleton count={6} variant="wide" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-2 lg:grid-cols-3">
+                {voting.map(t => (
+                  <UpcomingToken
+                    key={t.address}
+                    className="w-auto sm:w-auto"
+                    name={t.name}
+                    symbol={t.symbol}
+                    href={`/token/${t.address}`}
+                    imageUrl={t.imageUrl}
+                    subtitle={`Proposal #${t.proposal?.id ?? "—"} · ${t.proposal?.state || "Active"}`}
+                  />
+                ))}
+              </div>
+              {voting.length === 0 && (
+                <div className="py-[4rem] text-center">
+                  <p className="text-[1.2rem] text-white/60">No active recycling votes</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </TabsContent>

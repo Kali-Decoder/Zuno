@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Spinner } from "./Spinner";
 import {
   ConnectorAlreadyConnectedError,
@@ -58,18 +58,24 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
   const { disconnectAsync, isPending: isDisconnecting } = useDisconnect();
   const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const [busyLocal, setBusyLocal] = useState(false);
+  /** Avoid SSR/client mismatch while wagmi restores a session. */
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const connector = pickConnector(connectors);
+  const reconnecting = status === "connecting" || status === "reconnecting";
   const busy =
     busyLocal ||
     isLoading ||
     isPending ||
     isDisconnecting ||
     isSwitching ||
-    status === "connecting" ||
-    status === "reconnecting";
+    (mounted && reconnecting);
 
-  const wrongNetwork = isConnected && chainId !== arcTestnet.id;
+  const wrongNetwork = mounted && isConnected && chainId !== arcTestnet.id;
 
   const connectWallet = async () => {
     if (!connector) {
@@ -117,6 +123,15 @@ const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
     void connectWallet();
     onClick?.(e);
   };
+
+  // Stable first paint: always "Connect" until mounted so SSR matches hydration.
+  if (!mounted) {
+    return (
+      <button type={type} {...props} disabled className={cn(baseClass, className)} aria-busy={false}>
+        <span>{labelFromChildren(children)}</span>
+      </button>
+    );
+  }
 
   return (
     <button

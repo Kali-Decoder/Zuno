@@ -29,6 +29,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <TourComponent />
             <TourTrigger />
             <Toaster
+              position="bottom-right"
               toastOptions={{
                 style: {
                   background: "hsl(var(--color-primary-500))",

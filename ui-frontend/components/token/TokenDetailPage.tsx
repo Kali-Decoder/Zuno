@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
 import TradeInfo from "~~/components/coin/BuyNSell";
-import { ZunoLoader } from "~~/components/common/ZunoLoader";
+import { PanelSkeleton, TokenDetailSkeleton } from "~~/components/common/TokenSkeleton";
 import LifecyclePanel from "~~/components/token/LifecyclePanel";
 import {
   type TokenDetail,
@@ -326,14 +326,29 @@ function TokenChart({ token }: { token: TokenDetail }) {
             />
           </svg>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-[0.6rem] px-[2rem] text-center">
-            <div className="h-[1px] w-[40%] bg-gradient-to-r from-transparent via-accent-500/40 to-transparent" />
-            <p className="text-[1.35rem] text-white/45">
-              {loading ? "Loading chart…" : "Waiting for spot price…"}
-            </p>
-            <p className="max-w-[32rem] text-[1.15rem] text-white/25">
-              Prefers The Graph, then Mongo candles, then live RPC.
-            </p>
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col p-[1.6rem]",
+              loading ? "justify-end gap-[1.2rem]" : "items-center justify-center gap-[0.6rem]",
+            )}
+          >
+            {loading ? (
+              <>
+                <div className="h-[60%] w-full animate-pulse rounded-[1.2rem] bg-white/[0.06]" />
+                <div className="flex gap-[0.8rem]">
+                  <div className="h-[0.8rem] w-[30%] animate-pulse rounded bg-white/[0.08]" />
+                  <div className="h-[0.8rem] w-[20%] animate-pulse rounded bg-white/[0.06]" />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-[0.6rem] px-[2rem] text-center">
+                <div className="h-[1px] w-[40%] bg-gradient-to-r from-transparent via-accent-500/40 to-transparent" />
+                <p className="text-[1.35rem] text-white/45">Waiting for spot price…</p>
+                <p className="max-w-[32rem] text-[1.15rem] text-white/25">
+                  Prefers The Graph, then Mongo candles, then live RPC.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -433,9 +448,11 @@ function RecentTrades({ tokenId }: { tokenId: string }) {
       </div>
 
       {tab === "trades" ? (
-        trades.length === 0 ? (
+        loading ? (
+          <PanelSkeleton rows={5} className="border-0 bg-transparent p-0" />
+        ) : trades.length === 0 ? (
           <div className="rounded-[1.2rem] border border-dashed border-white/10 px-[1.4rem] py-[3.5rem] text-center text-[1.25rem] text-white/30">
-            {loading ? "Loading trades…" : "No trades yet — deploy/sync the subgraph or wait for Buy/Sell events"}
+            No trades yet — deploy/sync the subgraph or wait for Buy/Sell events
           </div>
         ) : (
           <div className="space-y-[0.3rem]">
@@ -643,11 +660,7 @@ export default function TokenDetailPage({ tokenId }: { tokenId: string }) {
   }, [hydrate, setRefetch]);
 
   if (loading && !token) {
-    return (
-      <div className="page-container grid min-h-[50vh] place-content-center pb-[6rem]">
-        <ZunoLoader size="lg" label="Loading token…" />
-      </div>
-    );
+    return <TokenDetailSkeleton />;
   }
 
   if (!token) {

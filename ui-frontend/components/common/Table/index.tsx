@@ -15,25 +15,20 @@ const Table = ({ columns = [], values = [], highlightedRowId }: TableProps) => {
         key={index}
         className={(() => {
           const position = values.position;
-          let gradient = "bg-transparent";
           let border = "border-white/10";
+          let bg = "bg-transparent";
           if (position === 1) {
-            gradient = "from-transparent to-[rgba(194,255,44,0.08)]";
             border = "border-accent-500/20";
-          } else if (position === 2) {
-            gradient = "from-transparent to-white/[0.04]";
-            border = "border-white/10";
-          } else if (position === 3) {
-            gradient = "from-transparent to-white/[0.03]";
-            border = "border-white/10";
+            bg = "bg-accent-500/[0.06]";
+          } else if (position === 2 || position === 3) {
+            bg = "bg-white/[0.02]";
           }
 
-          // Add highlight class if this row matches the highlighted ID
           if (isHighlighted) {
-            return `border-b ${border} last-of-type:border-0 bg-accent-500/20 border-accent-500/50 animate-pulse-subtle`;
+            return `border-b ${border} last-of-type:border-0 bg-accent-500/15 border-accent-500/40`;
           }
 
-          return `border-b ${border} last-of-type:border-0 bg-gradient-to-r hover:bg-white/5 transition-colors ${gradient}`;
+          return `border-b ${border} last-of-type:border-0 ${bg} hover:bg-white/5 transition-colors`;
         })()}
       >
         {columns.map((column, idx) => (
@@ -47,16 +42,16 @@ const Table = ({ columns = [], values = [], highlightedRowId }: TableProps) => {
 
   return (
     <div>
-      <table className="w-full table-auto text-[0.6rem] sm:text-[0.8rem] md:text-[1.4rem] text-white/80">
+      <table className="w-full table-auto text-[0.6rem] text-white/80 sm:text-[0.8rem] md:text-[1.4rem]">
         <thead>
-          <tr className="border-b border-green-500/20">
+          <tr className="border-b border-white/10">
             {columns.map((column, idx) => (
               <th
                 key={idx}
                 style={{ width: `${column.widthPercentage}%` }}
                 className={`p-2 md:p-4 ${idx === columns.length - 1 ? "text-right" : "text-left"}`}
               >
-                <span className="font-bold ">{column.title}</span>
+                <span className="font-bold">{column.title}</span>
               </th>
             ))}
           </tr>

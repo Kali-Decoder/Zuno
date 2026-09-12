@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import GraduatedTokenCard from "./GraduatedTokenCard";
-import { ZunoLoader } from "~~/components/common/ZunoLoader";
+import { TokenGridSkeleton } from "~~/components/common/TokenSkeleton";
 import { useApiTokens } from "~~/hooks/useApiTokens";
 import { apiToGraduatedToken } from "~~/lib/tokens/adapters";
 import { cn } from "~~/lib/utils";
@@ -45,15 +45,13 @@ export default function GraduatedSection() {
         </p>
       </div>
 
-      {pageTokens.length === 0 ? (
+      {loading && pageTokens.length === 0 ? (
+        <TokenGridSkeleton count={10} />
+      ) : pageTokens.length === 0 ? (
         <div className="grid place-content-center rounded-[1.4rem] bg-[#161616] px-[2rem] py-[4rem]">
-          {loading ? (
-            <ZunoLoader size="md" label="Loading…" />
-          ) : (
-            <p className="text-center text-white/40">
-              No graduated tokens yet. Hit the curve target, then launch the pool.
-            </p>
-          )}
+          <p className="text-center text-white/40">
+            No graduated tokens yet. Hit the curve target, then launch the pool.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-[1rem] sm:grid-cols-3 sm:gap-[1.2rem] lg:grid-cols-4 xl:grid-cols-5">

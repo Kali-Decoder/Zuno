@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import CopyAddressToClipboard from "../common/CopyAddressToClipboard";
 import Pagination from "../common/Pagination";
 import { Spinner } from "../common/Spinner";
-import { ZunoLoader } from "../common/ZunoLoader";
+import { TableSkeleton } from "../common/TokenSkeleton";
 import Table, { TableColumnInterface, TableValueInterface } from "../common/Table";
 import { getLeaderboardData, getUserRank } from "~~/hooks/api-hooks";
 import { notification } from "~~/lib/notification";
@@ -27,10 +27,16 @@ interface LeaderboardEntry extends TableValueInterface {
   position: number;
 }
 
+function formatZunoPoints(value: string | number) {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 const POSITION_COLUMN: TableColumnInterface = {
   title: "#",
   accessor: (rowData: TableValueInterface) => rowData[ColumnType.POSITION],
-  widthPercentage: 2,
+  widthPercentage: 8,
   renderer: (value: any) => {
     const rank = Number(value);
     return (
@@ -52,7 +58,7 @@ const POSITION_COLUMN: TableColumnInterface = {
 const HOLDER_COLUMN: TableColumnInterface = {
   title: "Trader",
   accessor: (rowData: TableValueInterface) => rowData[ColumnType.NAME],
-  widthPercentage: 10,
+  widthPercentage: 42,
   renderer: (_: any, rowData?: TableValueInterface) => {
     if (!rowData) return null;
     return (
@@ -63,10 +69,10 @@ const HOLDER_COLUMN: TableColumnInterface = {
   },
 };
 
-const PERCENTAGE_COLUMN: TableColumnInterface = {
-  title: "Score",
-  accessor: (rowData: TableValueInterface) => `${rowData[ColumnType.REPUTATION]}`,
-  widthPercentage: 30,
+const POINTS_COLUMN: TableColumnInterface = {
+  title: "Zuno points",
+  accessor: (rowData: TableValueInterface) => formatZunoPoints(String(rowData[ColumnType.REPUTATION])),
+  widthPercentage: 50,
   renderer: (value: any, rowData?: TableValueInterface) => {
     const position = rowData ? Number(rowData[ColumnType.POSITION]) : 0;
     return (
@@ -85,7 +91,7 @@ const PERCENTAGE_COLUMN: TableColumnInterface = {
   },
 };
 
-const columns = [POSITION_COLUMN, HOLDER_COLUMN, PERCENTAGE_COLUMN];
+const columns = [POSITION_COLUMN, HOLDER_COLUMN, POINTS_COLUMN];
 const ITEMS_PER_PAGE = 10;
 
 const SearchResultNotification = ({
@@ -103,7 +109,8 @@ const SearchResultNotification = ({
     <p className="mb-1 text-[1.4rem] font-bold">Search result</p>
     <p className="text-[1.2rem]">
       <span className="font-semibold">Address:</span> {shortenAddress(address)} ·{" "}
-      <span className="font-semibold">Rank:</span> #{rank} · <span className="font-semibold">Score:</span> {score}
+      <span className="font-semibold">Rank:</span> #{rank} ·{" "}
+      <span className="font-semibold">Zuno points:</span> {formatZunoPoints(score)}
     </p>
     {isOutsideTop100 && <p className="mt-1 text-[1rem] text-accent-500/80">Outside the current top 100</p>}
   </div>
@@ -249,68 +256,59 @@ const LeaderboardsTab = () => {
 
   return (
     <div className="page-container pb-[6rem]">
-      <section className="relative mb-[1.6rem] overflow-hidden rounded-[1.8rem] border border-white/[0.06] bg-[#121212]">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-80"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 50% at 0% 0%, rgba(194,255,44,0.07), transparent 55%)",
-          }}
-        />
-        <div className="relative p-[1.6rem] sm:p-[2.2rem]">
-          <div className="flex flex-col gap-[1.6rem] lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-[0.6rem]">
-              <div className="flex flex-wrap items-baseline gap-[1rem]">
-                <h1 className="text-[2.8rem] font-semibold tracking-tight text-white sm:text-[3.2rem]">Leaderboard</h1>
-                <span className="rounded-full bg-white/[0.06] px-[1rem] py-[0.35rem] text-[1.15rem] text-white/45">
-                  {leaderboardData.length.toLocaleString()} traders
-                </span>
-              </div>
-              <p className="max-w-[44rem] text-[1.25rem] text-white/40">
-                Ranked by ZUNO trading activity on Arc Testnet.
-              </p>
+      <section className="surface-elevated mb-[1.6rem] rounded-[1.6rem] bg-[#141414] p-[1.6rem] sm:p-[2rem] lg:p-[2.4rem]">
+        <div className="flex flex-col gap-[1.6rem] lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-[0.7rem]">
+            <div className="flex flex-wrap items-baseline gap-[1rem]">
+              <h1 className="text-[2.8rem] font-bold leading-none text-white sm:text-[3.2rem]">Leaderboard</h1>
+              <span className="rounded-full bg-white/10 px-[1rem] py-[0.4rem] text-[1.15rem] text-white/55">
+                {leaderboardData.length.toLocaleString()} traders
+              </span>
             </div>
-
-            <p className="font-mono text-[1.15rem] tabular-nums text-white/35">
-              Refresh in {String(timeUntilRefresh.hours).padStart(2, "0")}:
-              {String(timeUntilRefresh.minutes).padStart(2, "0")}:
-              {String(timeUntilRefresh.seconds).padStart(2, "0")}
+            <p className="max-w-[48rem] text-[1.25rem] text-white/45 sm:text-[1.35rem]">
+              Ranked by Zuno points from trading activity on Arc Testnet.
             </p>
           </div>
 
-          <form onSubmit={handleSearch} className="mt-[1.8rem] flex flex-col gap-[0.8rem] sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-[1.2rem] top-1/2 size-[1.4rem] -translate-y-1/2 text-white/30" />
-              <input
-                type="text"
-                value={searchAddress}
-                onChange={e => setSearchAddress(e.target.value)}
-                placeholder="Search by wallet address"
-                className="w-full rounded-full border border-white/[0.08] bg-[#0c0c0c] py-[1.1rem] pl-[3.8rem] pr-[3.2rem] text-[1.3rem] text-white outline-none placeholder:text-white/25 focus:border-accent-500/40"
-              />
-              {searchAddress && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="absolute right-[1.2rem] top-1/2 -translate-y-1/2 text-[1.2rem] text-white/40 hover:text-white"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={isSearching || !searchAddress.trim()}
-              className="inline-flex items-center justify-center gap-[0.5rem] rounded-full bg-accent-500 px-[1.8rem] py-[1.1rem] text-[1.3rem] font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              {isSearching ? <Spinner className="size-[1.5rem]" /> : "Search"}
-            </button>
-          </form>
+          <p className="font-mono text-[1.15rem] tabular-nums text-white/35">
+            Refresh in {String(timeUntilRefresh.hours).padStart(2, "0")}:
+            {String(timeUntilRefresh.minutes).padStart(2, "0")}:
+            {String(timeUntilRefresh.seconds).padStart(2, "0")}
+          </p>
         </div>
+
+        <form onSubmit={handleSearch} className="mt-[1.8rem] flex flex-col gap-[0.8rem] sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-[1.2rem] top-1/2 size-[1.4rem] -translate-y-1/2 text-white/30" />
+            <input
+              type="text"
+              value={searchAddress}
+              onChange={e => setSearchAddress(e.target.value)}
+              placeholder="Search by wallet address"
+              className="w-full rounded-full border border-white/[0.08] bg-[#0c0c0c] py-[1.1rem] pl-[3.8rem] pr-[3.2rem] text-[1.3rem] text-white outline-none placeholder:text-white/25 focus:border-accent-500/40"
+            />
+            {searchAddress && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-[1.2rem] top-1/2 -translate-y-1/2 text-[1.2rem] text-white/40 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isSearching || !searchAddress.trim()}
+            className="inline-flex items-center justify-center gap-[0.5rem] rounded-full bg-accent-500 px-[1.8rem] py-[1.1rem] text-[1.3rem] font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            {isSearching ? <Spinner className="size-[1.5rem]" /> : "Search"}
+          </button>
+        </form>
       </section>
 
       {accountAddress && (
-        <section className="mb-[1.6rem] rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
+        <section className="surface-elevated mb-[1.6rem] rounded-[1.6rem] bg-[#141414] p-[1.4rem] sm:p-[1.8rem]">
           <div className="flex flex-col gap-[0.8rem] sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[1.1rem] uppercase tracking-[0.06em] text-white/30">Your rank</p>
@@ -324,23 +322,24 @@ const LeaderboardsTab = () => {
                   #{userRankData.position}
                 </div>
                 <p className="text-[1.4rem] text-white/80">
-                  Score <span className="font-semibold tabular-nums text-white">{userRankData.reputation}</span>
+                  Zuno points{" "}
+                  <span className="font-semibold tabular-nums text-white">
+                    {formatZunoPoints(userRankData.reputation)}
+                  </span>
                 </p>
               </div>
             ) : (
               <p className="max-w-[36rem] text-[1.25rem] text-white/40">
-                No score yet — trade bonding-curve tokens on ZUNO to climb the board.
+                No Zuno points yet — trade bonding-curve tokens on ZUNO to climb the board.
               </p>
             )}
           </div>
         </section>
       )}
 
-      <section className="rounded-[1.8rem] border border-white/[0.06] bg-[#121212] p-[1.4rem] sm:p-[1.8rem]">
+      <section className="surface-elevated rounded-[1.6rem] bg-[#141414] p-[1.4rem] sm:p-[1.8rem]">
         {loadingLeaderboard ? (
-          <div className="grid h-[28rem] place-content-center">
-            <ZunoLoader size="lg" label="Loading rankings…" />
-          </div>
+          <TableSkeleton rows={8} />
         ) : paginatedData.length === 0 ? (
           <div className="grid h-[22rem] place-content-center px-[2rem] text-center">
             <p className="text-[1.5rem] text-white/50">No leaderboard data yet</p>

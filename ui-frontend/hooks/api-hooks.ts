@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getSeededLeaderboard, getSeededUserRank } from "~~/constants/leaderboard";
 
 export function useCreateAccount() {
   const [loading, setLoading] = useState(false);
@@ -9,7 +10,12 @@ export function useCreateAccount() {
     setLoading(true);
     setError(null);
     try {
-      const res = { reputation: 0, communities: [], ...body };
+      const seeded = getSeededUserRank(body.user_id);
+      const res = {
+        reputation: seeded.reputation ?? 0,
+        communities: [],
+        ...body,
+      };
       setData(res);
       return res;
     } finally {
@@ -31,7 +37,12 @@ export function useGetAccount(userId: string) {
       setLoading(false);
       return;
     }
-    setData({ user_id: userId, reputation: 0, communities: [] });
+    const seeded = getSeededUserRank(userId);
+    setData({
+      user_id: userId,
+      reputation: seeded.reputation ?? 0,
+      communities: [],
+    });
     setError(null);
     setLoading(false);
   }, [userId]);
@@ -93,14 +104,7 @@ export function useGetDiamondHands() {
 }
 
 export async function getLeaderboardData() {
-  return [] as {
-    id: string;
-    user_id: string;
-    reputation: string;
-    displayAddress: string;
-    rank: number;
-    global_rank: number;
-  }[];
+  return getSeededLeaderboard();
 }
 
 export async function getMerkleProof(_userAddress: string, _tokenAddress: string) {
@@ -114,9 +118,5 @@ interface AccountRankResponse {
 }
 
 export async function getUserRank(userId: string): Promise<AccountRankResponse> {
-  return {
-    user_id: userId,
-    global_rank: 0,
-    reputation: null,
-  };
+  return getSeededUserRank(userId);
 }
